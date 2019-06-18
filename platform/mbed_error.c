@@ -534,25 +534,6 @@ static void print_error_report(const mbed_error_ctx *ctx, const char *error_msg,
     mbed_error_printf("\nCurrent Thread: %s  Id: 0x%" PRIX32 " Entry: 0x%" PRIX32 " StackSize: 0x%" PRIX32 " StackMem: 0x%" PRIX32 " SP: 0x%" PRIX32 " ",
                       name_or_unnamed(((osRtxThread_t *)ctx->thread_id)->name),
                       ctx->thread_id, ctx->thread_entry_address, ctx->thread_stack_size, ctx->thread_stack_mem, ctx->thread_current_sp);
-
-#define STACK_END 0xCCCCCCCC
-    mbed_error_printf("\nPrinting Stack");
-	int stack_end_cnt = 0;
-	for (uint32_t st = ctx->thread_current_sp; st >= ctx->thread_stack_mem; st -= sizeof(int))
-	{
-		uint32_t st_val = *((uint32_t*)st);
-		mbed_error_printf("\n0x%" PRIX32 ": 0x%" PRIX32, st, st_val);
-		if (st_val == STACK_END)
-		{
-			stack_end_cnt++;
-		}
-		else
-		{
-			stack_end_cnt = 0;
-		}
-		if (stack_end_cnt > 2)
-			break;
-	}
 #endif
 
 #if MBED_CONF_PLATFORM_ERROR_ALL_THREADS_INFO && defined(MBED_CONF_RTOS_PRESENT)
@@ -575,6 +556,51 @@ static void print_error_report(const mbed_error_ctx *ctx, const char *error_msg,
     mbed_stats_sys_get(&sys_stats);
     mbed_error_printf("\nFor more info, visit: https://mbed.com/s/error?error=0x%08X&osver=%" PRId32 "&core=0x%08" PRIX32 "&comp=%d&ver=%" PRIu32 "&tgt=" GET_TARGET_NAME(TARGET_NAME), ctx->error_status, sys_stats.os_version, sys_stats.cpu_id, sys_stats.compiler_id, sys_stats.compiler_version);
 #endif
+
+#if MBED_STACK_DUMP_ENABLED && defined(MBED_CONF_RTOS_PRESENT)
+#define STACK_END_MARK		0xCCCCCCCC
+#define STACK_END_MARK_CNT	3
+#define STACK_DUMP_WIDTH	8
+    mbed_error_printf("\n\nStack Dump:");
+	// Find the stack end.
+	int stack_end_cnt = 0;
+	uint32_t st_end = ctx->thread_current_sp;
+	for ( ; st_end >= ctx->thread_stack_mem; st_end -= sizeof(int))
+	{
+		uint32_t st_val = *((uint32_t*)st_end);
+		if (st_val == STACK_END_MARK)
+		{
+			stack_end_cnt++;
+		}
+		else
+		{
+			stack_end_cnt = 0;
+		}
+		if (stack_end_cnt >= STACK_END_MARK_CNT)
+		{
+			st_end += (STACK_END_MARK_CNT - 1) * sizeof(int);
+			break;
+		}
+	}
+	for (uint32_t st = st_end; st <= ctx->thread_current_sp; st += sizeof(int) * STACK_DUMP_WIDTH)
+	{
+		mbed_error_printf("\n0x%08" PRIX32 ":", st);
+		for (int i = 0; i < STACK_DUMP_WIDTH; i++)
+		{
+			uint32_t st_cur = st + i * sizeof(int);
+			if (st_cur > ctx->thread_current_sp)
+				break;
+			uint32_t st_val = *((uint32_t*)st_cur);
+			mbed_error_printf("0x%08" PRIX32 " ", st_val);
+			if (st_val == STACK_END_MARK)
+				stack_end_cnt++;
+			else
+				stack_end_cnt = 0;
+		}
+	}
+    mbed_error_printf("\n");
+#endif  // MBED_STACK_DUMP_ENABLED
+
     mbed_error_printf("\n-- MbedOS Error Info --\n");
 }
 #endif //ifndef NDEBUG
