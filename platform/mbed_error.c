@@ -534,6 +534,25 @@ static void print_error_report(const mbed_error_ctx *ctx, const char *error_msg,
     mbed_error_printf("\nCurrent Thread: %s  Id: 0x%" PRIX32 " Entry: 0x%" PRIX32 " StackSize: 0x%" PRIX32 " StackMem: 0x%" PRIX32 " SP: 0x%" PRIX32 " ",
                       name_or_unnamed(((osRtxThread_t *)ctx->thread_id)->name),
                       ctx->thread_id, ctx->thread_entry_address, ctx->thread_stack_size, ctx->thread_stack_mem, ctx->thread_current_sp);
+
+#define STACK_END 0xCCCCCCCC
+    mbed_error_printf("\nPrinting Stack");
+	int stack_end_cnt = 0;
+	for (uint32_t st = ctx->thread_current_sp; st >= ctx->thread_stack_mem; st -= sizeof(int))
+	{
+		uint32_t st_val = *((uint32_t*)st);
+		mbed_error_printf("\n0x%" PRIX32 ": 0x%" PRIX32, st, st_val);
+		if (st_val == STACK_END)
+		{
+			stack_end_cnt++;
+		}
+		else
+		{
+			stack_end_cnt = 0;
+		}
+		if (stack_end_cnt > 2)
+			break;
+	}
 #endif
 
 #if MBED_CONF_PLATFORM_ERROR_ALL_THREADS_INFO && defined(MBED_CONF_RTOS_PRESENT)
