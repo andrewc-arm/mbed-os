@@ -43,6 +43,11 @@
 #endif
 #define MODEM_LINK_DEVICE_SHMEM_DBG     if (MODEM_LINK_DEVICE_SHMEM_DBG_ON) tr_info
 
+#define SHMEM_CIRC_BUFFER_ERROR			(-10)
+
+
+
+
 static void shmem_irq_handler(void *data);
 static void shmem_save_irq_handler(void *data);
 static void shmem_stop_req_irq_handler(void *data);
@@ -55,187 +60,67 @@ Thread *msgrxwork;
 Thread *irqwork;
 Semaphore modem_link_device_sem(0, 512);
 
-static bool circ_valid(unsigned int qsize, unsigned int in, unsigned int out)
+bool shmem_ready=0;
+
+int ShmemIpcDevice::get_txq_space(void)
 {
-    if (in >= qsize) {
-        return false;
-    }
-
-    if (out >= qsize) {
-        return false;
-    }
-
-    return true;
-}
-
-static unsigned int circ_get_space(unsigned int qsize, unsigned int in, unsigned int out)
-{
-    return (in < out) ? (out - in - 1) : (qsize + out - in - 1);
-}
-
-static unsigned int circ_get_usage(unsigned int qsize, unsigned int in, unsigned int out)
-{
-    return (in >= out) ? (in - out) : (qsize - out + in);
-}
-
-static unsigned int circ_new_pointer(unsigned int qsize, unsigned int p, unsigned int len)
-{
-    p += len;
-    return (p < qsize) ? p : (p - qsize);
-}
-
-
-/**
- * circ_read
- * @dst: start address of the destination buffer
- * @src: start address of the buffer in a circular queue
- * @qsize: size of the circular queue
- * @out: offset to read
- * @len: length of data to be read
- *
- * Should be invoked after checking data length
- */
-static void circ_read(unsigned char *dst, unsigned char *src, unsigned int qsize, unsigned int out, unsigned int len)
-{
-    uint32_t len1;
-
-    if (out >= qsize) {
-        out -= qsize;
-    }
-
-    if ((out + len) <= qsize) {
-        /* ----- (out)         (in) ----- */
-        /* -----   7f 00 00 7e      ----- */
-        memcpy(dst, (src + out), len);
-    } else {
-        /*       (in) ----------- (out)   */
-        /* 00 7e      -----------   7f 00 */
-
-        /* 1) data start (out) ~ buffer end */
-        len1 = qsize - out;
-        memcpy(dst, (src + out), len1);
-
-        /* 2) buffer start ~ data end (in?) */
-        memcpy((dst + len1), src, (len - len1));
-    }
-}
-
-/**
- * circ_write
- * @dst: pointer to the start of the circular queue
- * @src: pointer to the source
- * @qsize: size of the circular queue
- * @in: offset to write
- * @len: length of data to be written
- *
- * Should be invoked after checking free space
- */
-static void circ_write(unsigned char *dst, unsigned char *src, unsigned int qsize, unsigned int in, unsigned int len)
-{
-    unsigned int space;
-
-    if ((in + len) < qsize) {
-        /*       (in) ----------- (out)   */
-        /* 00 7e      -----------   7f 00 */
-        memcpy((dst + in), src, len);
-    } else {
-        /* ----- (out)         (in) ----- */
-        /* -----   7f 00 00 7e      ----- */
-
-        /* 1) space start (in) ~ buffer end */
-        space = qsize - in;
-        memcpy((dst + in), src, ((len > space) ? space : len));
-
-        /* 2) buffer start ~ data end */
-        if (len > space) {
-            memcpy(dst, (src + space), (len - space));
-        }
-    }
-}
-
-
-
-unsigned int ShmemIpcDevice::GetTxqHead(void)
-{
-    return getreg32(txq.head);
-}
-
-unsigned int ShmemIpcDevice::GetTxqTail(void)
-{
-    return getreg32(txq.tail);
-}
-
-unsigned int ShmemIpcDevice::GetRxqHead(void)
-{
-    return getreg32(rxq.head);
-}
-
-unsigned int ShmemIpcDevice::GetRxqTail(void)
-{
-    return getreg32(rxq.tail);
-}
-
-int ShmemIpcDevice::get_txq_space(shmem_circ_status *circ)
-{
-    int cnt = 0;
-    unsigned int qsize;
-    unsigned int head;
-    unsigned int tail;
+    unsigned int head = *txq.head;
+    unsigned int tail = *txq.tail;
     int space;
 
-    while (1) {
-        qsize = txq.size;
-        head = getreg32(txq.head);
-        tail = getreg32(txq.tail);
-        space = circ_get_space(qsize, head, tail);
+    if((head >= txq.size) || (tail >= txq.size))
+	return SHMEM_CIRC_BUFFER_ERROR;
 
-        if (circ_valid(qsize, head, tail)) {
-            break;
-        }
-
-        cnt++;
-        if (cnt >= 1) {
-            space = -5;
-            break;
-        }
-
-        osDelay(1);
-    }
-
-    circ->buff = txq.buff;
-    circ->qsize = qsize;
-    circ->in = head;
-    circ->out = tail;
-    circ->size = space;
+    space = tail - head - 1;
+    if(space < 0) 
+	space += txq.size;
 
     return space;
 }
 
-void ShmemIpcDevice::write_ipc_to_txq(shmem_circ_status *circ, mio_buf *mio)
+void ShmemIpcDevice::write_ipc_to_txq(mio_buf *mio)
 {
-    unsigned int qsize = circ->qsize;
-    unsigned int in = circ->in;
-    unsigned char *buff = circ->buff;
-    unsigned char *header = (unsigned char *)(mio->header);
-    unsigned char *src = (unsigned char *)(mio->data);
+    unsigned int qsize = txq.size;
+    unsigned int in = *txq.head;
+    unsigned int *buff = (unsigned int *)txq.buff;
+    unsigned int *header = (unsigned int *)(mio->header);
+    unsigned int *src = (unsigned int *)(mio->data);
     unsigned int len = mio->len;
     unsigned int pad = mio->pad;
+    unsigned int i, j;
 
-    /* Write data to the TXQ */
-    circ_write(buff, header, qsize, in, EXYNOS_HEADER_SIZE);
-    in += EXYNOS_HEADER_SIZE;
-    if (in >= qsize) {
-        in -= qsize;
+    /* Write HEADER to the TXQ, assume that with padding aligned on 4 bytes */
+    i = in >> 2;
+    for (j = 0; j < EXYNOS_HEADER_SIZE/4; j++) {
+        buff[i] = header[j];
+        i ++;
+        if(i ==  qsize>>2){ 
+            i = 0;}
+        MBED_ASSERT(i < qsize>>2);
     }
-    circ_write(buff, src, qsize, in, len + pad);
 
-    /* Update new head (in) pointer */
-    putreg32(circ_new_pointer(qsize, circ->in, EXYNOS_HEADER_SIZE + len + pad), txq.head);
+    in += EXYNOS_HEADER_SIZE;
+    if (in >= qsize) in -= qsize;
+
+    /* Write data to the TXQ, assume that with padding aligned on 4 bytes */
+    i = in >> 2;
+    for (j = 0; j < (len + pad)/4; j ++) {
+        buff[i] = src[j];
+        i ++;
+        if(i ==  qsize>>2){ 
+            i = 0;}
+        MBED_ASSERT(i < qsize>>2);
+    }
+
+    in += len + pad;
+    if (in >= qsize) in -= qsize;
+
+    *txq.head = in; 
 }
 
 int ShmemIpcDevice::xmit_ipc_msg(mio_buf *msg)
 {
-    shmem_circ_status circ;
+//    shmem_circ_status circ;
     int space;
     int copied = 0;
     bool chk_nospc = false;
@@ -264,19 +149,23 @@ int ShmemIpcDevice::xmit_ipc_msg(mio_buf *msg)
     tx_lock->lock();
 
     /* Get the size of free space in the TXQ */
-    space = get_txq_space(&circ);
-    if (space < 0) {
-        /* Empty out the TXQ */
+    space = get_txq_space();
+    if (space < 0)
+    {
+        /* TXQ ERROR */
         copied = -EIO;
         return copied;//break;
     }
 
-    /* Check the free space size,
+    /* TO DO - check free memory space if it fits all headres !!!
+	Check the free space size,
       - FMT : comparing with mxb->len
       - RAW : check used buffer size  */
     chk_nospc = (space < msg->len) ? true : false;
 
-    if (chk_nospc) {
+    if (chk_nospc)
+    {
+	/* TO DO - implement this back pressure to operate properly. */
         printf("ERROR Not implement %s:%d\n", __func__, __LINE__);
         while (1);
         /* Set res_required flag for the "dev" */
@@ -290,7 +179,7 @@ int ShmemIpcDevice::xmit_ipc_msg(mio_buf *msg)
     }
 
     /* TX only when there is enough space in the TXQ */
-    write_ipc_to_txq(&circ, msg);
+    write_ipc_to_txq(msg);
     copied += msg->len;
     free_mio_buf(msg);
 
@@ -558,26 +447,6 @@ void ShmemIpcDevice::recv_req_ack(unsigned short intr)
     }
 }
 
-int ShmemIpcDevice::get_rxq_rcvd(unsigned int head, unsigned int tail, shmem_circ_status *circ)
-{
-    circ->buff = rxq.buff;
-    circ->qsize = rxq.size;
-    circ->in = head;
-    circ->out = tail;
-    circ->size = circ_get_usage(circ->qsize, circ->in, circ->out);
-
-    if (circ_valid(circ->qsize, circ->in, circ->out)) {
-//      mifwdbg("SHMEM: %s_RXQ qsize[%u] in[%u] out[%u] rcvd[%u]\n",
-//          get_dev_name(dev), circ->qsize, circ->in,
-//          circ->out, circ->size);
-        return 0;
-    } else {
-//      mifdbg("SHMEM: ERR! %s_RXQ invalid (qsize[%d] in[%d] out[%d])\n",
-//          get_dev_name(dev), circ->qsize, circ->in,
-//          circ->out);
-        return -5;
-    }
-}
 
 ShmemIpcFmtDevice::ShmemIpcFmtDevice()
 {
@@ -618,70 +487,89 @@ ShmemIpcFmtDevice *ShmemIpcFmtDevice::getInstance(void)
     return s_ipcfmtdevice;
 }
 
-int ShmemIpcFmtDevice::rx_ipc_frames(shmem_circ_status *circ)
+int ShmemIpcDevice::rx_ipc_frames(void)
 {
+    int i;
+
+    if((*rxq.head >= rxq.size) || (*rxq.tail >= rxq.size))
+	return -5;
+
+
     ShmemLinkDevice *ld = pShmemLinkDevice;
 
     /**
      * variables for the status of the circular queue
      */
-    unsigned char *src;
     unsigned char hdr[EXYNOS_HEADER_SIZE];
     /**
      * variables for RX processing
      */
-    int qsize;  /* size of the queue            */
-    int rcvd;   /* size of data in the RXQ or error */
-    int rest;   /* size of the rest data        */
-    int out;    /* index to the start of current frame  */
-    int tot;    /* total length including padding data  */
+    int qsize;	/* size of the queue			*/
+    int rcvd;	/* size of data in the RXQ or error	*/
+    int rest;	/* size of the rest data		*/
+    unsigned int out;	/* index to the start of current frame	*/
+    int tot;	/* total length including padding data	*/
 
-    src = circ->buff;
-    qsize = circ->qsize;
-    out = circ->out;
-    rcvd = circ->size;
+    rcvd = *rxq.head - *rxq.tail;
+    if(rcvd < 0)
+        rcvd += rxq.size;	
 
-    rest = circ->size;
-    tot = 0;
+    rest = rcvd;
+    out = *rxq.tail;
 
     while (rest > 0) {
         mio_buf *msg;
 
-        /* Copy the header in the frame to the header buffer */
-        circ_read(hdr, src, qsize, out, EXYNOS_HEADER_SIZE);
+	if(rest < EXYNOS_HEADER_SIZE) 
+		return -75;
+	
+	for(i = 0; i < EXYNOS_HEADER_SIZE/4; i ++) {
+		((unsigned int *)hdr)[i] = ((unsigned int *)rxq.buff)[out>>2];
+		out += 4;
+		if(out >= rxq.size)
+			out = 0;
+	}
 
         /* Check the config field in the header */
-        if (!exynos_start_valid(hdr)) {
-//          mifdbg("SHMEM: ERR! %s INVALID config 0x%02X (rcvd %d, rest %d)\n",
-//              get_dev_name(dev), hdr[0],
-//              rcvd, rest);
+        if (!exynos_start_valid(hdr))
+        {
             goto bad_msg;
         }
 
         /* Verify the total length of the frame (data + padding) */
         tot = exynos_get_total_len(hdr);
-        if (tot > rest) {
-//          mifdbg("SHMEM: ERR! %s tot %d > rest %d (rcvd %d)\n",
-//              get_dev_name(dev), tot, rest, rcvd);
+        if (tot > rest)
+        {
             goto bad_msg;
         }
+
         msg = alloc_mio_buf(tot - EXYNOS_HEADER_SIZE);
-        circ_read((unsigned char *)(msg->data), src, qsize, out + EXYNOS_HEADER_SIZE, tot - EXYNOS_HEADER_SIZE);
+	for(i = 0; i < (tot - EXYNOS_HEADER_SIZE)/4; i ++) {
+		((unsigned int *)(msg->data))[i] = ((unsigned int *)rxq.buff)[out>>2];
+		out += 4;
+		if(out >= rxq.size)
+			out = 0;
+	}
+
+
         msg->ch = exynos_get_ch(hdr);
-        msg->len = tot - EXYNOS_HEADER_SIZE;
+
+	if(msg->ch == 254){
+	        msg->len = tot - EXYNOS_HEADER_SIZE;
+	} else {
+		/* Use actual frame len to pass real payload length to upper layer */
+	        msg->len = exynos_get_frame_len(hdr) - EXYNOS_HEADER_SIZE;
+	}
+
         ld->ipc_rxq.put(msg);
         ld->ipc_rx_sem->release();
 
         /* Calculate new out value */
         rest -= tot;
-        out += tot;
-        if (out >= qsize) {
-            out -= qsize;
-        }
     }
 
     /* Update tail (out) pointer to empty out the RXQ */
-    putreg32(out, rxq.tail);
+    *rxq.tail = out;
 
     return rcvd;
 
@@ -731,79 +619,6 @@ ShmemIpcRawDevice *ShmemIpcRawDevice::getInstance(void)
     return s_ipclawdevice;
 }
 
-int ShmemIpcRawDevice::rx_ipc_frames(shmem_circ_status *circ)
-{
-    ShmemLinkDevice *ld = pShmemLinkDevice;
-
-    /**
-     * variables for the status of the circular queue
-     */
-    unsigned char *src;
-    unsigned char hdr[EXYNOS_HEADER_SIZE];
-    /**
-     * variables for RX processing
-     */
-    int qsize;  /* size of the queue            */
-    int rcvd;   /* size of data in the RXQ or error */
-    int rest;   /* size of the rest data        */
-    int out;    /* index to the start of current frame  */
-    int tot;    /* total length including padding data  */
-
-    src = circ->buff;
-    qsize = circ->qsize;
-    out = circ->out;
-    rcvd = circ->size;
-
-    rest = circ->size;
-    tot = 0;
-
-    while (rest > 0) {
-        mio_buf *msg;
-
-        /* Copy the header in the frame to the header buffer */
-        circ_read(hdr, src, qsize, out, EXYNOS_HEADER_SIZE);
-
-        /* Check the config field in the header */
-        if (!exynos_start_valid(hdr)) {
-            tr_info("SHMEM: ERR! IPC_RAW INVALID config 0x%02X (rcvd %d, rest %d)\n",
-                    hdr[0], rcvd, rest);
-            goto bad_msg;
-        }
-
-        /* Verify the total length of the frame (data + padding) */
-        tot = exynos_get_total_len(hdr);
-        if (tot > rest) {
-            tr_info("SHMEM: ERR! IPC_RAW tot %d > rest %d (rcvd %d)\n",
-                    tot, rest, rcvd);
-            goto bad_msg;
-        }
-        msg = alloc_mio_buf(tot - EXYNOS_HEADER_SIZE);
-        circ_read((unsigned char *)(msg->data), src, qsize, out + EXYNOS_HEADER_SIZE, tot - EXYNOS_HEADER_SIZE);
-        msg->ch = exynos_get_ch(hdr);
-        /* Use actual frame len to pass real payload length to upper layer */
-        msg->len = exynos_get_frame_len(hdr) - EXYNOS_HEADER_SIZE;
-        ld->ipc_rxq.put(msg);
-        ld->ipc_rx_sem->release();
-
-        /* Calculate new out value */
-        rest -= tot;
-        out += tot;
-        if (out >= qsize) {
-            out -= qsize;
-        }
-    }
-
-    /* Update tail (out) pointer to empty out the RXQ */
-    putreg32(out, rxq.tail);
-
-    return rcvd;
-
-bad_msg:
-#ifdef CONFIG_DEBUG_MODEM_IF
-    //mifdbg("SHMEM: ERR! rcvd:%d tot:%d rest:%d\n", rcvd, tot, rest);
-#endif
-    return -74;
-}
 
 void ipc_rx_task(void);
 static void shmem_irq_handler(void *data)
@@ -840,14 +655,13 @@ static void shmem_stop_req_irq_handler(void *data)
     /* DO SOMETHING here */
 }
 
-void msg_handler(unsigned int head[], unsigned int tail[])
+void msg_handler(void)
 {
     ShmemLinkDevice *ld = pShmemLinkDevice;
     ShmemIpcDevice *ipc;
     int i;
     int ret;
     unsigned int magic;
-    shmem_circ_status circ;
 
     //MODEM_LINK_DEVICE_SHMEM_DBG("%s:%d  head[] = {%d, %d}, tail[] = {%d, %d}\n", __func__, __LINE__, head[0], head[1], tail[0], tail[1]);
 
@@ -866,22 +680,18 @@ void msg_handler(unsigned int head[], unsigned int tail[])
     /* Process REQ_ACK (At this point, the RXQ may be empty.) */
     for (i = 0; i < MAX_IPC_DEV; i++) {
         ipc = ld->ipc_device[i];
-        if (head[i] == tail[i]) {
+        if (*(ipc->rxq.head) == *(ipc->rxq.tail))
+        {
             ipc->done_req_ack();
             continue;
         }
 
-        ret = ipc->get_rxq_rcvd(head[i], tail[i], &circ);
-        if (ret < 0) {
+        ret = ipc->rx_ipc_frames();
+        if (ret < 0)
             return;
         }
 
-        ret = ipc->rx_ipc_frames(&circ);
-        if (ret  < 0) {
-            return;
-        }
-
-        if (ret < (int)(circ.size)) {
+        if (!ret)
             break;
         }
 
@@ -893,18 +703,11 @@ void msg_handler(unsigned int head[], unsigned int tail[])
 void ipc_rx_task(void)
 {
     ShmemLinkDevice *ld = pShmemLinkDevice;
-    unsigned int head[MAX_IPC_DEV];
-    unsigned int tail[MAX_IPC_DEV];
     unsigned short int2ap;
     int i;
 
     /* get_shmem_status */
     int2ap = ld->get_mbx_cp2ap_msg();
-    for (i = 0; i < MAX_IPC_DEV; i++) {
-        head[i] = ld->ipc_device[i]->GetRxqHead();
-        tail[i] = ld->ipc_device[i]->GetRxqTail();
-    }
-    //MODEM_LINK_DEVICE_SHMEM_DBG("%s int2ap[0x%08X]\n", __func__, int2ap);
 
     /* Process a SHMEM command */
     if (INT_CMD_VALID(int2ap)) {
@@ -912,10 +715,6 @@ void ipc_rx_task(void)
         return;
     }
 
-    /* Update tail variables with the current tail pointers */
-    for (i = 0; i < MAX_IPC_DEV; i++) {
-        tail[i] = ld->ipc_device[i]->GetRxqTail();
-    }
 
     /* Check and receive RES_ACK from CP */
     /* Check and receive REQ_ACK from CP */
@@ -936,7 +735,7 @@ void ipc_rx_task(void)
         }
     }
 
-    msg_handler(head, tail);
+    msg_handler();
 }
 
 void msg_rx_work(void)

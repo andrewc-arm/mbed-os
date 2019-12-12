@@ -75,12 +75,6 @@ public:
     Semaphore *req_ack_cmpl;
 
 public:
-    virtual void TxWork(unsigned long arg) { }
-    void RxWork(unsigned long arg) { };
-    unsigned int GetTxqHead(void);
-    unsigned int GetTxqTail(void);
-    unsigned int GetRxqHead(void);
-    unsigned int GetRxqTail(void);
 
     void done_req_ack(void);
     void recv_req_ack(unsigned short intr);
@@ -101,8 +95,8 @@ public:
     }
     void terminate_comm(void) { }
 
-    int get_txq_space(shmem_circ_status *circ);
-    void write_ipc_to_txq(shmem_circ_status *circ, mio_buf *mxb);
+    int get_txq_space(void);
+    void write_ipc_to_txq(mio_buf *mxb);
     int xmit_ipc_msg(mio_buf *mxb);
     int send(mio_buf *mxb);
     void send_cmd(unsigned short cmd);
@@ -111,29 +105,25 @@ public:
     int check_security(unsigned long arg);
     int sec_init(unsigned long arg);
 
-    virtual int rx_ipc_frames(shmem_circ_status *circ)
-    {
-        return 0;
-    }
-    int get_rxq_rcvd(unsigned int head, unsigned int tail, shmem_circ_status *circ);
+    int rx_ipc_frames(void);
 };
 
 class ShmemIpcFmtDevice : public ShmemIpcDevice {
 public:
     ShmemIpcFmtDevice();
     ~ShmemIpcFmtDevice();
-    void TxWork(unsigned long arg) { }
+//    void TxWork(unsigned long arg) { }
     static ShmemIpcFmtDevice *getInstance(void);
-    int rx_ipc_frames(shmem_circ_status *circ);
+//    int rx_ipc_frames(shmem_circ_status *circ);
 };
 
 class ShmemIpcRawDevice : public ShmemIpcDevice {
 public:
     ShmemIpcRawDevice();
     ~ShmemIpcRawDevice();
-    void TxWork(unsigned long arg) { }
+//    void TxWork(unsigned long arg) { }
     static ShmemIpcRawDevice *getInstance(void);
-    int rx_ipc_frames(shmem_circ_status *circ);
+//    int rx_ipc_frames(shmem_circ_status *circ);
 };
 
 

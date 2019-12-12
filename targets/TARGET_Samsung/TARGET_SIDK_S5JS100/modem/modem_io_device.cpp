@@ -20,6 +20,7 @@
 #include <string.h>
 #include "modem_io_device.h"
 #include "modem_prj.h"
+#include "modem_link_device_shmem.h"
 
 #include "mbed_trace.h"
 #define TRACE_GROUP "IODEV"
@@ -29,24 +30,39 @@
 #endif
 #define MODEM_IO_DEVICE_DBG     if (MODEM_IO_DEVICE_DBG_ON) tr_info
 
-#ifndef MODEM_IO_DEVICE_MAX
-#define MODEM_IO_DEVICE_MAX     (24)
-#endif
+#define MODEM_IO_DEVICE_MAX	sizeof(modem_io_deivce_list)/sizeof(ModemIoDevice *)
 
-ModemIoDevice *modem_io_deivce_list[MODEM_IO_DEVICE_MAX];
-extern ShmemLinkDevice *pShmemLinkDevice;
+ShmemIpcFmtDevice *ipc_fmt_dev = ShmemIpcFmtDevice::getInstance();
+ShmemIpcRawDevice *ipc_raw_dev = ShmemIpcRawDevice::getInstance();
 
-void registerModemIoDevice(ModemIoDevice *io)
-{
-    int i;
+IoDevMisc	IoDev_ModemProxy(	(char *)"ModemProxy",	245,	ipc_fmt_dev);
+IoDevNet	IoDev_rmnet1(		(char *)"rmnet1",	1,	ipc_raw_dev);
+IoDevMisc	IoDev_shmem_save(	(char *)"shmem_save",	243,	ipc_raw_dev);
+IoDevMisc	IoDev_dcxo(		(char *)"dcxo",		244,	ipc_raw_dev);
+IoDevMisc	IoDev_if5(		(char *)"if5",		242,	ipc_raw_dev);
+IoDevNet	IoDev_rmnet2(		(char *)"rmnet2",	2,	ipc_raw_dev);
+IoDevNet	IoDev_rmnet3(		(char *)"rmnet3",	3,	ipc_raw_dev);
+IoDevNet	IoDev_rmnet4(		(char *)"rmnet4",	4,	ipc_raw_dev);
+IoDevMisc	IoDev_rmnet6(		(char *)"rmnet6",	6,	ipc_raw_dev);
+IoDevMisc	IoDev_rmnet7(		(char *)"rmnet7",	7,	ipc_raw_dev);
+IoDevMisc	IoDev_rmnet8(		(char *)"rmnet8",	8,	ipc_raw_dev);
+IoDevMisc	IoDev_rmnet9(		(char *)"rmnet9",	9,	ipc_raw_dev);
 
-    for (i = 0; i < MODEM_IO_DEVICE_MAX; i++) {
-        if (!modem_io_deivce_list[i]) {
-            modem_io_deivce_list[i] = io;
-            break;
-        }
-    }
-}
+
+ModemIoDevice *modem_io_deivce_list[] = {
+	&IoDev_ModemProxy,	
+	&IoDev_rmnet1,		
+	&IoDev_shmem_save,	
+	&IoDev_dcxo,		
+	&IoDev_if5,		
+	&IoDev_rmnet2,		
+	&IoDev_rmnet3,		
+	&IoDev_rmnet4,		
+	&IoDev_rmnet6,		
+	&IoDev_rmnet7,		
+	&IoDev_rmnet8,		
+	&IoDev_rmnet9,		
+};
 
 ModemIoDevice *getModemIoDeviceByName(char *name)
 {

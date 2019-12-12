@@ -22,32 +22,8 @@
 #include "modem_link_device_shmem.h"
 #include "modem_io_device.h"
 
-struct modem_io_device {
-    char name[12];
-    int id;
-    enum dev_format format;
-    enum modem_io type;
-} modem_io_list[] = {
-    {"ModemProxy",  245,    IPC_FMT,    IODEV_MISC},
-    {"rmnet1",  1,  IPC_RAW,    IODEV_NET},
-    {"shmem_save",  243,    IPC_RAW,    IODEV_MISC},
-    {"dcxo",    244,    IPC_RAW,    IODEV_MISC},
-    {"if5", 242,    IPC_RAW,    IODEV_MISC},
-    {"rmnet2",  2,  IPC_RAW,    IODEV_NET},
-    {"rmnet3",  3,  IPC_RAW,    IODEV_NET},
-    {"rmnet4",  4,  IPC_RAW,    IODEV_NET},
-    {"rmnet6",  6,  IPC_RAW,    IODEV_MISC},
-    {"rmnet7",  7,  IPC_RAW,    IODEV_MISC},
-    {"rmnet8",  8,  IPC_RAW,    IODEV_MISC},
-    {"rmnet9",  9,  IPC_RAW,    IODEV_MISC},
-};
-
 
 extern "C" {
-    extern void dcxo_thread_start(void);
-    extern void dcxo_thread_stop(void);
-    extern void shmem_save_start(void);
-    extern void shmem_save_stop(void);
 
     void s5js100_modem_start(void)
     {
@@ -56,36 +32,7 @@ extern "C" {
         int id;
 
         pShmemLinkDevice = new ShmemLinkDevice();
-        pShmemLinkDevice->ShmemLinkDevice_start();
-        ShmemIpcFmtDevice *ipc_fmt = ShmemIpcFmtDevice::getInstance();
-        ShmemIpcRawDevice *ipc_raw = ShmemIpcRawDevice::getInstance();
-        ShmemIpcDevice *ipc;
-
-        for (i = 0; i < sizeof(modem_io_list) / sizeof(modem_io_list[0]); i++) {
-            name = modem_io_list[i].name;
-            id = modem_io_list[i].id;
-            switch (modem_io_list[i].format) {
-                case IPC_FMT:
-                    ipc = ipc_fmt;
-                    break;
-                case IPC_RAW:
-                    ipc = ipc_raw;
-                    break;
-                default:
-                    break;
-            }
-
-            switch (modem_io_list[i].type) {
-                case IODEV_MISC:
-                    registerModemIoDevice(new IoDevMisc(name, id, ipc));
-                    break;
-                case IODEV_NET:
-                    registerModemIoDevice(new IoDevNet(name, id, ipc));
-                    break;
-                default:
-                    break;
-            }
-        }
+	pShmemLinkDevice->ShmemLinkDevice_start();
     }
 
     void s5js100_modem_stop(void)
