@@ -110,12 +110,12 @@ unsigned short ModemIoDevice::exynos_build_fr_config(unsigned int count)
 void ModemIoDevice::exynos_build_header(unsigned char *buff, unsigned short cfg, unsigned char ctl, int count)
 {
     unsigned short *exynos_header = (unsigned short *)(buff + EXYNOS_START_OFFSET);
-    unsigned short *frame_seq = (unsigned short *)(buff + EXYNOS_FRAME_SEQ_OFFSET);
+    //unsigned short *frame_seq = (unsigned short *)(buff + EXYNOS_FRAME_SEQ_OFFSET);
     unsigned short *frag_cfg = (unsigned short *)(buff + EXYNOS_FRAG_CONFIG_OFFSET);
     unsigned short *size = (unsigned short *)(buff + EXYNOS_LEN_OFFSET);
 
     *exynos_header = EXYNOS_START_MASK;
-    *frame_seq = ++(seq_num.frame_cnt);
+   //*frame_seq = ++(seq_num.frame_cnt);
     *frag_cfg = cfg;
     *size = (unsigned short)(EXYNOS_HEADER_SIZE + count);
     buff[EXYNOS_CH_ID_OFFSET] = id;
@@ -124,7 +124,7 @@ void ModemIoDevice::exynos_build_header(unsigned char *buff, unsigned short cfg,
         *frag_cfg = cfg;
     }
 
-    buff[EXYNOS_CH_SEQ_OFFSET] = ++seq_num.ch_cnt[id];
+    buff[EXYNOS_CH_SEQ_OFFSET] = ++ch_cnt;
 }
 
 int ModemIoDevice::write(const char *buf, int count)

@@ -73,7 +73,7 @@ public:
     int res_required;
     Mutex *tx_lock;
     Semaphore *req_ack_cmpl;
-
+    unsigned short header_cnt;
 public:
 
     void done_req_ack(void);

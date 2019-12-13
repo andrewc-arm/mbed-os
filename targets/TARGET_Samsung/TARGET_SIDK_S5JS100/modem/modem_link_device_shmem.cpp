@@ -88,6 +88,9 @@ void ShmemIpcDevice::write_ipc_to_txq(mio_buf *mio)
     unsigned int len = mio->len;
     unsigned int pad = mio->pad;
     unsigned int i, j;
+    unsigned short *frame_seq = (unsigned short *)((void *)header + EXYNOS_FRAME_SEQ_OFFSET);
+
+    *frame_seq = ++header_cnt;
 
     /* Write HEADER to the TXQ, assume that with padding aligned on 4 bytes */
     i = in >> 2;
@@ -431,11 +434,15 @@ void ShmemIpcDevice::done_req_ack(void)
 
 void ShmemIpcDevice::recv_res_ack(unsigned short intr)
 {
-    //MODEM_LINK_DEVICE_SHMEM_DBG("%s:%d\n", __func__, __LINE__);
-
-    if (intr & mask_res_ack) {
-        req_ack_cmpl->release();
-    }
+	/*
+	This method is used to nodify about receiving response 
+	from CP on req_ack sent earlier to confirm CPis alive
+	In fact we never sent is, so nothing to receive. 
+	*/
+	if(intr & mask_res_ack) {	
+		/* We should not get here!!! */
+		while(1);
+	}
 }
 
 void ShmemIpcDevice::recv_req_ack(unsigned short intr)
@@ -474,6 +481,8 @@ ShmemIpcFmtDevice::ShmemIpcFmtDevice()
 
     tx_lock = new Mutex("IPC_FMT");
     req_ack_cmpl = new Semaphore(1, 1);
+
+    header_cnt = 0;
 }
 
 ShmemIpcFmtDevice *ShmemIpcFmtDevice::getInstance(void)
@@ -491,9 +500,12 @@ int ShmemIpcDevice::rx_ipc_frames(void)
 {
     int i;
 
+/* buffer indeces are corrupted*/
     if((*rxq.head >= rxq.size) || (*rxq.tail >= rxq.size))
 	return -5;
-
+/* nothing to read */
+    if (*rxq.head == *rxq.tail)
+	return 0;
 
     ShmemLinkDevice *ld = pShmemLinkDevice;
 
@@ -606,6 +618,8 @@ ShmemIpcRawDevice::ShmemIpcRawDevice()
 
     req_ack_cmpl = new Semaphore(1, 1);
     tx_lock = new Mutex("IPC_RAW");
+
+    header_cnt = 0;
 }
 
 ShmemIpcRawDevice *ShmemIpcRawDevice::getInstance(void)
@@ -674,30 +688,20 @@ void msg_handler(void)
         system_halt();
     }
 
-
     /* Skip RX processing if there is no data in the RXQ */
     /* Read data in the RXQ */
     /* Process REQ_ACK (At this point, the RXQ may be empty.) */
     for (i = 0; i < MAX_IPC_DEV; i++) {
         ipc = ld->ipc_device[i];
-        if (*(ipc->rxq.head) == *(ipc->rxq.tail))
-        {
-            ipc->done_req_ack();
-            continue;
-        }
-
         ret = ipc->rx_ipc_frames();
-        if (ret < 0)
-            return;
-        }
 
-        if (!ret)
-            break;
-        }
+	/* TODO review below case and handle it properly!!! */
+	/* In case of error just return. Shall we do aything here? */
+        if (ret < 0)
+            while(1);
 
         ipc->done_req_ack();
     }
-
 }
 
 void ipc_rx_task(void)
@@ -715,27 +719,19 @@ void ipc_rx_task(void)
         return;
     }
 
+    if(INT_VALID(int2ap)) {
+      /* Make CP happy with our fake responses we are alive ... */
+      /* However CP never sends it ... only SEND_R and SEND_F */
+      /* Check and receive RES_ACK from CP */
+      /* Check and receive REQ_ACK from CP */
+      for (i = 0; i < MAX_IPC_DEV; i++)
+      {
+        ld->ipc_device[i]->recv_res_ack(int2ap);
+        ld->ipc_device[i]->recv_req_ack(int2ap);
+      }
 
-    /* Check and receive RES_ACK from CP */
-    /* Check and receive REQ_ACK from CP */
-    for (i = 0; i < MAX_IPC_DEV; i++) {
-        switch (int2ap) {
-            case INT_MASK_RES_ACK_F:
-            case INT_MASK_RES_ACK_R:
-            case INT_MASK_RES_ACK_RFS:
-                ld->ipc_device[i]->recv_res_ack(int2ap);
-                break;
-            case INT_MASK_REQ_ACK_F:
-            case INT_MASK_REQ_ACK_R:
-            case INT_MASK_REQ_ACK_RFS:
-                ld->ipc_device[i]->recv_req_ack(int2ap);
-                break;
-            default:
-                break;
-        }
-    }
-
-    msg_handler();
+      msg_handler();
+    }	
 }
 
 void msg_rx_work(void)

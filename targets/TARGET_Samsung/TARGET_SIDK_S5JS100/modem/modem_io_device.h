@@ -38,7 +38,7 @@ public:
     int id;
     ShmemIpcDevice *ipc;
     link_mode mode;
-    struct exynos_seq_num seq_num;
+    unsigned char ch_cnt;
     void (*read_cb)(mio_buf *, void *);
     void *cb_data;
 
@@ -79,7 +79,7 @@ public:
         id = ch;
         ipc = ipc_dev;
         mode = LINK_MODE_OFFLINE;
-        memset((void *)(&seq_num), 0, sizeof(struct exynos_seq_num));
+	ch_cnt = 0;
         read_cb = NULL;
     }
     void IoReadCallback(mio_buf *);
@@ -97,7 +97,7 @@ public:
         id = ch;
         ipc = ipc_dev;
         mode = LINK_MODE_OFFLINE;
-        memset((void *)(&seq_num), 0, sizeof(struct exynos_seq_num));
+	ch_cnt = 0;
         read_cb = NULL;
     }
     void IoReadCallback(mio_buf *);
