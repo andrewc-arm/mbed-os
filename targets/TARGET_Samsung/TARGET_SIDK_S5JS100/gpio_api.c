@@ -37,6 +37,7 @@
 #define GetBits(uAddr, uBaseBit, uMaskValue) \
     ((getreg32(uAddr)>>(uBaseBit))&(uMaskValue))
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+int gpio_pin_mode(PinName pin, PinMode mode);
 uint32_t get_tmux_addr(enum gpio_id_ id)
 {
     uint32_t i;

@@ -952,7 +952,7 @@ void msg_rx_work(void)
 
     while (1) {
         ld = pShmemLinkDevice;
-        ld->ipc_rx_sem->wait();
+        ld->ipc_rx_sem->try_acquire();
 
         while (!(ld->ipc_rxq.empty())) {
             MODEM_LINK_DEVICE_SHMEM_DBG("%s:%d", __func__, __LINE__);

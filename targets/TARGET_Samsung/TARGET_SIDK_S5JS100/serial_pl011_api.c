@@ -30,6 +30,7 @@
 #include "pinmap.h"
 #include "PinNames.h"
 #include "mbed_error.h"
+#include "mbed_assert.h"
 #include "gpio_api.h"
 
 #define UART_PTR(ptr)   ((S5JS100_UART_TypeDef *)(ptr))
@@ -122,7 +123,7 @@ static void pl011_serial_baud(void *obj, int baudrate)
     struct serial_s *priv = (struct serial_s *)obj;
     S5JS100_UART_TypeDef *p_PL011_UART = UART_PTR(priv->uart);
 
-    uint32_t sclk;
+    uint32_t sclk = 0;
     float div, frac;
     switch (priv->index) {
         case PL011_UART0_ID:
@@ -132,6 +133,9 @@ static void pl011_serial_baud(void *obj, int baudrate)
         case PL011_UART1_ID:
             sclk = cal_clk_getrate(d1_uart1);
             break;
+		
+		default:
+			MBED_ASSERT(false);
     }
 
     div = ((float)sclk / (float)(baudrate * 16));

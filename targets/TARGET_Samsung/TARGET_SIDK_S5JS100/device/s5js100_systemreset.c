@@ -300,7 +300,7 @@ static mbed_error_status_t handle_error(mbed_error_status_t error_status, unsign
 #define CONTAINER_OF(ptr, type, field) \
     ((type *)(((char *)(ptr)) - offsetof(type, field)))
 
-int mbed_error(int error_status, const char *error_msg, unsigned int error_value, const char *filename, int line_number)
+mbed_error_status_t mbed_error(int error_status, const char *error_msg, unsigned int error_value, const char *filename, int line_number)
 {
     int i;
     uint32_t current_psp;
@@ -328,7 +328,5 @@ int mbed_error(int error_status, const char *error_msg, unsigned int error_value
         mbed_error_printf("0x%.8x ", getreg32(current_psp));
     }
     mbed_error_printf("\n======================FOR ERROR DUMP ========================= \n");
-
     while (1);
-    return 0;
 }

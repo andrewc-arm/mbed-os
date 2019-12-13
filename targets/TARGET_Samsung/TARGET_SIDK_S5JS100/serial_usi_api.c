@@ -34,6 +34,7 @@
 
 #include "s5js100.h"
 #include "mbed_wait_api.h"
+#include "mbed_thread.h"
 
 #define USI_PTR(ptr) ((S5JS100_USI_UART_TypeDef *)(ptr))
 static uart_irq_handler irq_handler[USI_MAX_PORTS];
@@ -306,7 +307,8 @@ void usi_serial_init(void *obj, PinName tx, PinName rx)
                         UART_UFCON_TX_FIFO_RESET | UART_UFCON_RX_FIFO_RESET |
                         UART_UFCON_FIFO_ENABLE ;
 
-    wait_ms(10);
+    //wait_ms(10);
+	thread_sleep_for(10);
 
     //Enable TX/RX fifo int/poll mode with RX timeout of 32 bits duration
     p_USI_UART->UCON = UART_UCON_RX_TOUT_32FRAMES | UART_UCON_RX_TOUTINT_ENABLE |

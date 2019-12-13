@@ -149,7 +149,6 @@ void SystemCoreConfig()
 
     const uint32_t *src;
     uint32_t *dest, size;
-    uint32_t vector;
 
 #if defined ( __ICCARM__ )
     src = &__vector_table;

@@ -44,7 +44,7 @@ public:
 
 public:
     virtual void IoReadCallback(mio_buf *) { }
-    virtual void  open(void) { }
+    virtual void open(void) { }
     virtual void close(void) { }
     virtual int read(char *buffer, int buflen)
     {

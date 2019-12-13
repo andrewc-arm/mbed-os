@@ -128,8 +128,6 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
             break;
     }
 
-
-
     // set default baud rate and format
     obj->ops.serial_baud(obj, 115200);
     obj->ops.serial_format(obj, 8, ParityNone, 1);
@@ -142,7 +140,7 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
 
 void serial_free(serial_t *obj)
 {
-#warning "Need to implment serial_free() function."
+	//needs release serial 
 }
 
 // serial_baud

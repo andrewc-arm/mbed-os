@@ -32,6 +32,7 @@
 
 #include "mbed_trace.h"
 #include "platform/mbed_wait_api.h"
+#include "platform/mbed_thread.h"
 #define TRACE_GROUP "PWR"
 
 #ifndef S5JS100_PWR_DBG_ON
@@ -386,9 +387,10 @@ void mcpu_init(MCPU_MODE device)
             putreg32(getreg32(0x85041204) | (1 << 10), 0x85041204);
             putreg32(getreg32(0x8504120C) | (1 << 2), 0x8504120C);
             //while (!(getreg32(0x85041200) & (1 << 10)));
-            wait_ms(10);
+            //wait_ms(10);
+			thread_sleep_for(10);
             putreg32(getreg32(0x85041200) & 0x3FF, 0x85041204);
-            if (getreg32(0x85041204) & 0x3FF == 0x0) {
+            if ((getreg32(0x85041204) & 0x3FF) == 0x0) {
                 putreg32(0x210, 0x85041204);
             }
             S5JS100_PWR_DBG("Check 2nd register\n");

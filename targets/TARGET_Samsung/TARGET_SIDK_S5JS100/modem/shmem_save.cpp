@@ -125,10 +125,10 @@ void shmem_get_data(unsigned int *cs, unsigned int *nv, unsigned int *cal)
     unsigned int i;
     shmem_section_data *m;
     unsigned int ret[3] = {0, 0, 0};
-    unsigned int FLASH16MB = 0, oldstart, oldsize;
-    unsigned int psize, poffset;
-    unsigned char *tmpbuf;
-    shmem_section_data *tmpsection;
+    //unsigned int FLASH16MB = 0, oldstart, oldsize;
+    //unsigned int psize, poffset;
+    //unsigned char *tmpbuf;
+    //shmem_section_data *tmpsection;
 
     //initialize SHMEM section depending on FLASH capacity
     if (s5js100_sflash_read_capacity() == 16 * 1024 * 1024) {
