@@ -907,7 +907,7 @@ void pmu_nb_sleep(void)
     s5js100_pmu_sleep((PMU_SLEEP_INFO *)&pmu_info);
 }
 
-void __attribute__((section(".ramfunc"), long_call)) s5js100_sflash_deepsleep(int on)
+void __attribute__((section(".ramfunc"))) s5js100_sflash_deepsleep(int on)
 {
     volatile unsigned int count = 2000;
 
@@ -928,7 +928,7 @@ void __attribute__((section(".ramfunc"), long_call)) s5js100_sflash_deepsleep(in
     }
 }
 #if !defined(__ICCARM__)
-void __attribute__((section(".ramfunc"), long_call)) s5js100_enter_exit_idle_drx(void)
+void __attribute__((section(".ramfunc"))) s5js100_enter_exit_idle_drx(void)
 {
 #if defined( __GNUC__ )
     asm("isb");
@@ -953,7 +953,7 @@ void __attribute__((section(".ramfunc"), long_call)) s5js100_enter_exit_idle_drx
 #endif
 
 #if !defined(__ICCARM__)
-void __attribute__((section(".ramfunc"), long_call)) pmu_sleep_isr(void)
+void __attribute__((section(".ramfunc"))) pmu_sleep_isr(void)
 {
 #if defined(__ARMCC_VERSION)
     while (1);
