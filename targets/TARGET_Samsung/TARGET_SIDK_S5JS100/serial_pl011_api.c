@@ -133,9 +133,9 @@ static void pl011_serial_baud(void *obj, int baudrate)
         case PL011_UART1_ID:
             sclk = cal_clk_getrate(d1_uart1);
             break;
-		
-		default:
-			MBED_ASSERT(false);
+
+        default:
+            MBED_ASSERT(false);
     }
 
     div = ((float)sclk / (float)(baudrate * 16));

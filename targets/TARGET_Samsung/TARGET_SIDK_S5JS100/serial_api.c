@@ -140,7 +140,7 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
 
 void serial_free(serial_t *obj)
 {
-	//needs release serial 
+    //needs release serial
 }
 
 // serial_baud

@@ -388,7 +388,7 @@ void mcpu_init(MCPU_MODE device)
             putreg32(getreg32(0x8504120C) | (1 << 2), 0x8504120C);
             //while (!(getreg32(0x85041200) & (1 << 10)));
             //wait_ms(10);
-			thread_sleep_for(10);
+            thread_sleep_for(10);
             putreg32(getreg32(0x85041200) & 0x3FF, 0x85041204);
             if ((getreg32(0x85041204) & 0x3FF) == 0x0) {
                 putreg32(0x210, 0x85041204);
@@ -993,7 +993,7 @@ extern void s5js100_sflash_reinit(void);
 /*      default - DCXO_IP_ON        */
 /*              - BUS Clock 26MHz   */
 /*              - Sleep Clock 32Khz */
-//void __attribute__((section(".ramfunc"), long_call)) pmu_short_sleep(void)
+//void __attribute__((section(".ramfunc"))) pmu_short_sleep(void)
 void pmu_short_sleep(void)
 {
     unsigned int i;

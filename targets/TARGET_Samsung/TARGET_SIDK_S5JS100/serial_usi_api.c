@@ -308,7 +308,7 @@ void usi_serial_init(void *obj, PinName tx, PinName rx)
                         UART_UFCON_FIFO_ENABLE ;
 
     //wait_ms(10);
-	thread_sleep_for(10);
+    thread_sleep_for(10);
 
     //Enable TX/RX fifo int/poll mode with RX timeout of 32 bits duration
     p_USI_UART->UCON = UART_UCON_RX_TOUT_32FRAMES | UART_UCON_RX_TOUTINT_ENABLE |
