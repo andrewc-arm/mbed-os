@@ -40,6 +40,9 @@ class CellularContext : public CellularInterface {
 
 public:
 
+    static const int MAX_APN_LENGTH = 63 + 1;
+    static const int NETWORK_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+    static const int DEVICE_TIMEOUT = 5 * 60 * 1000;   // 5 minutes
     // max simultaneous PDP contexts active
     static const int PDP_CONTEXT_COUNT = 4;
 
@@ -124,6 +127,7 @@ public: // from NetworkInterface
     virtual nsapi_error_t get_ip_address(SocketAddress *address) = 0;
     MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
     virtual const char *get_ip_address() = 0;
+    virtual char *get_interface_name(char *interface_name);
 
     /** Register callback for status reporting.
      *
@@ -188,7 +192,10 @@ public: // from NetworkInterface
      *  In synchronous and asynchronous mode application can get result in from callback which is set with
      *  attach(...)
      *
-     *  @return         NSAPI_ERROR_OK on success
+     *  @return         NSAPI_ERROR_OK on success in blocking mode.
+     *                  NSAPI_ERROR_OK if asynchronous operation started.
+     *                  NSAPI_ERROR_ALREADY if device is already ready
+     *                  NSAPI_ERROR_IN_PROGRESS if device ready or other event which requires device ready is already in progress
      *                  NSAPI_ERROR_NO_MEMORY on case of memory failure
      */
     virtual nsapi_error_t set_device_ready() = 0;
@@ -200,7 +207,10 @@ public: // from NetworkInterface
      *  In synchronous and asynchronous mode, the application can get result in from callback, which is set with
      *  attach(...)
      *
-     *  @return         NSAPI_ERROR_OK on success
+     *  @return         NSAPI_ERROR_OK on success in blocking mode.
+     *                  NSAPI_ERROR_OK if asynchronous operation started.
+     *                  NSAPI_ERROR_ALREADY if sim is already ready
+     *                  NSAPI_ERROR_IN_PROGRESS if sim ready or other event which requires sim ready is already in progress
      *                  NSAPI_ERROR_NO_MEMORY on case of memory failure
      */
     virtual nsapi_error_t set_sim_ready() = 0;
@@ -212,7 +222,10 @@ public: // from NetworkInterface
      *  In synchronous and asynchronous mode, the application can get result in from callback, which is set with
      *  attach(...)
      *
-     *  @return         NSAPI_ERROR_OK on success
+     *  @return         NSAPI_ERROR_OK on success in blocking mode.
+     *                  NSAPI_ERROR_OK if asynchronous operation started.
+     *                  NSAPI_ERROR_ALREADY if device is already registered to a network
+     *                  NSAPI_ERROR_IN_PROGRESS if registering or other event which requires registering is already in progress
      *                  NSAPI_ERROR_NO_MEMORY on case of memory failure
      */
     virtual nsapi_error_t register_to_network() = 0;
@@ -224,7 +237,10 @@ public: // from NetworkInterface
      *  In synchronous and asynchronous mode, the application can get result in from callback, which is set with
      *  attach(...)
      *
-     *  @return         NSAPI_ERROR_OK on success
+     *  @return         NSAPI_ERROR_OK on success in blocking mode.
+     *                  NSAPI_ERROR_OK if asynchronous operation started.
+     *                  NSAPI_ERROR_ALREADY if device is already attached to a network
+     *                  NSAPI_ERROR_IN_PROGRESS if attach is already in progress
      *                  NSAPI_ERROR_NO_MEMORY on case of memory failure
      */
     virtual nsapi_error_t attach_to_network() = 0;

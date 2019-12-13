@@ -26,11 +26,8 @@
 #endif // #if DEVICE_SERIAL
 #include "ThisThread.h"
 
-#define NETWORK_TIMEOUT 30 * 60 * 1000 // 30 minutes
-#define DEVICE_TIMEOUT 5 * 60 * 1000 // 5 minutes
 // Timeout to wait for URC indicating ciot optimization support from network
 #define CP_OPT_NW_REPLY_TIMEOUT 3000 // 3 seconds
-
 #if NSAPI_PPP_AVAILABLE
 #define AT_SYNC_TIMEOUT 1000 // 1 second timeout
 #include "nsapi_ppp.h"
@@ -285,7 +282,7 @@ void AT_CellularContext::attach(Callback<void(nsapi_event_t, intptr_t)> status_c
 nsapi_error_t AT_CellularContext::set_blocking(bool blocking)
 {
     nsapi_error_t err = NSAPI_ERROR_OK;
-    tr_info("CellularContext set blocking %d", blocking);
+    tr_info("AT_CellularContext set blocking %d", blocking);
 #if NSAPI_PPP_AVAILABLE
     err = nsapi_ppp_set_blocking(blocking);
 #endif

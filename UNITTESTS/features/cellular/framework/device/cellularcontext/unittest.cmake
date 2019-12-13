@@ -43,6 +43,7 @@ set(unittest-test-sources
   stubs/ThisThread_stub.cpp
   stubs/ConditionVariable_stub.cpp
   stubs/Mutex_stub.cpp
+  stubs/Default_AT_CellularDevice_stub.cpp
 )
 
 set(unittest-test-flags
@@ -51,7 +52,6 @@ set(unittest-test-flags
   -DMDMTXD=NC
   -DMDMRXD=NC
   -DMBED_CONF_PLATFORM_DEFAULT_SERIAL_BAUD_RATE=115200
-  -DCELLULAR_DEVICE=myCellularDevice
   -DDEVICE_SERIAL_FC=1
   -DMBED_CONF_CELLULAR_CONTROL_PLANE_OPT=0
   -DDEVICE_SERIAL=1

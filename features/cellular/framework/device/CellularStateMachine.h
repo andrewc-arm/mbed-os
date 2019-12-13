@@ -41,6 +41,7 @@ private:
     // friend of CellularDevice so that it's the only way to close/delete this class.
     friend class CellularDevice;
     friend class AT_CellularDevice;
+    friend class RIL_CellularDevice;
     friend class UT_CellularStateMachine; // for unit tests
     /** Constructor
      *

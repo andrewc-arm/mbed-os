@@ -22,8 +22,6 @@
 #include "Semaphore.h"
 #include "AT_CellularDevice.h"
 
-const int MAX_APN_LENGTH = 63 + 1;
-
 namespace mbed {
 
 class AT_CellularContext : public CellularContext {

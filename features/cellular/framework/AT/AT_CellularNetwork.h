@@ -144,7 +144,6 @@ protected:
     Callback<void(nsapi_event_t, intptr_t)> _connection_status_cb;
     Callback<void(CIoT_Supported_Opt)> _ciotopt_network_support_cb;
     RadioAccessTechnology _op_act;
-    nsapi_connection_status_t _connect_status;
     CIoT_Supported_Opt _supported_network_opt;
 
     registration_params_t _reg_params;

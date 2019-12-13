@@ -50,6 +50,27 @@ public:
     public:
         virtual ~Interface() {}
 
+        /** Set IP address
+         *
+         * bringup() can only take one IP address and in dual stack case
+         * another IP address can be set using this function.
+         *
+         * Must be called before bringup().
+         *
+         * @param    ip         IP address to be used for the interface as "W:X:Y:Z" or NULL
+         * @param    netmask    Net mask to be used for the interface as "W:X:Y:Z" or NULL
+         * @param    gw         Gateway address to be used for the interface as "W:X:Y:Z" or NULL
+         * @param    stack      Allow manual selection of IPv4 and/or IPv6.
+         * @return              NSAPI_ERROR_OK on success, or error code
+         */
+        virtual nsapi_error_t set_ip_address(const char *ip,
+                                             const char *netmask,
+                                             const char *gw,
+                                             nsapi_ip_stack_t stack = DEFAULT_STACK)
+        {
+            return NSAPI_ERROR_UNSUPPORTED;
+        }
+
         /** Connect the interface to the network
          *
          * Sets up a connection on specified network interface, using DHCP or provided network details. If the @a dhcp is set to

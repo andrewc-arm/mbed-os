@@ -55,7 +55,7 @@ struct cell_signal_quality_t {
  */
 typedef enum cellular_event_status {
     CellularDeviceReady                     = NSAPI_EVENT_CELLULAR_STATUS_BASE,     /* Modem is powered and ready to receive commands. cell_callback_data_t.status_data will be -1 */
-    CellularSIMStatusChanged                = NSAPI_EVENT_CELLULAR_STATUS_BASE + 1, /* SIM state changed. cell_callback_data_t.status_data will be enum SimState. See enum SimState in ../API/CellularSIM.h*/
+    CellularSIMStatusChanged                = NSAPI_EVENT_CELLULAR_STATUS_BASE + 1, /* SIM state changed. cell_callback_data_t.status_data will be enum SimState. See enum SimState in ../API/CellularDevice.h*/
     CellularRegistrationStatusChanged       = NSAPI_EVENT_CELLULAR_STATUS_BASE + 2, /* Registering status changed. cell_callback_data_t.status_data will be enum RegistrationStatus. See enum RegistrationStatus in ../API/CellularNetwork.h*/
     CellularRegistrationTypeChanged         = NSAPI_EVENT_CELLULAR_STATUS_BASE + 3, /* Registration type changed. cell_callback_data_t.status_data will be enum RegistrationType. See enum RegistrationType in ../API/CellularNetwork.h*/
     CellularCellIDChanged                   = NSAPI_EVENT_CELLULAR_STATUS_BASE + 4, /* Network Cell ID have changed. cell_callback_data_t.status_data will be int cellid*/
@@ -68,6 +68,7 @@ typedef enum cellular_event_status {
     CellularDeviceTimeout                   = NSAPI_EVENT_CELLULAR_STATUS_BASE + 10,/* cell_callback_data_t.error contain an error or NSAPI_ERROR_OK,
                                                                                        cell_callback_data_t.status_data contains the current cellular_connection_status_t,
                                                                                        cellular_event_status.data contains new timeout value in milliseconds */
+    CellularRILATResponse                   = NSAPI_EVENT_CELLULAR_STATUS_BASE + 11, /* Only available when using RIL layer. This is a (multi-)response to RIL command RIL_REQUEST_SET_FORWARDING_AT_COMMAND. Data field contain AT response (char*) and status_data contains length. */
 } cellular_connection_status_t;
 
 #endif // CELLULAR_COMMON_

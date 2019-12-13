@@ -67,4 +67,18 @@ typedef struct {
     uint32_t                event_flags;  ///< Event Flags
 } osRtxEventFlags_t;
 
+typedef struct osRtxMutex_s {
+    uint8_t                          id;  ///< Object Identifier
+    uint8_t              reserved_state;  ///< Object State (not used)
+    uint8_t                       flags;  ///< Object Flags
+    uint8_t                        attr;  ///< Object Attributes
+    const char                    *name;  ///< Object Name
+    osRtxThread_t          *thread_list;  ///< Waiting Threads List
+    osRtxThread_t         *owner_thread;  ///< Owner Thread
+    struct osRtxMutex_s     *owner_prev;  ///< Pointer to previous owned Mutex
+    struct osRtxMutex_s     *owner_next;  ///< Pointer to next owned Mutex
+    uint8_t                        lock;  ///< Lock counter
+    uint8_t                  padding[3];
+} osRtxMutex_t;
+
 #endif

@@ -62,10 +62,28 @@ typedef void *osMutexId_t;
 
 typedef void *osEventFlagsId_t;
 
+typedef void *osMutexId_t;
+
 /// Attributes structure for thread.
 typedef struct {
     int unused;
 } osThreadAttr_t;
+
+/// Attributes structure for mutex.
+typedef struct {
+    const char                   *name;   ///< name of the mutex
+    uint32_t                 attr_bits;   ///< attribute bits
+    void                      *cb_mem;    ///< memory for control block
+    uint32_t                   cb_size;   ///< size of provided memory for control block
+} osMutexAttr_t;
+
+/// Attributes structure for event flags.
+typedef struct {
+    const char                   *name;   ///< name of the event flags
+    uint32_t                 attr_bits;   ///< attribute bits
+    void                      *cb_mem;    ///< memory for control block
+    uint32_t                   cb_size;   ///< size of provided memory for control block
+} osEventFlagsAttr_t;
 
 #define osWaitForever         0xFFFFFFFFU ///< Wait forever timeout value.
 

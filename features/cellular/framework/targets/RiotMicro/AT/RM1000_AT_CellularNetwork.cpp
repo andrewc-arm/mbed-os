@@ -32,7 +32,6 @@ using namespace mbed;
 void RM1000_AT_CellularNetwork::MODEM_FAULT_URC()
 {
     tr_debug("RM1000_AT_CellularNetwork::ASSERTED_URC");
-    _connect_status = NSAPI_STATUS_DISCONNECTED;
     if (_connection_status_cb) {
         _connection_status_cb(NSAPI_EVENT_CONNECTION_STATUS_CHANGE, NSAPI_STATUS_DISCONNECTED);
     }

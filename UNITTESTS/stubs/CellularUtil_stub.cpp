@@ -139,4 +139,12 @@ pdp_type_t string_to_pdp_type(const char *pdp_type)
     return IPV4V6_PDP_TYPE;
 }
 
+void separate_space_delimited_addresses(bool ipv6,
+                                        char *orig,
+                                        char *ip1, size_t ip1_size,
+                                        char *ip2, size_t ip2_size)
+{
+
+}
+
 } // namespace mbed_cellular_util

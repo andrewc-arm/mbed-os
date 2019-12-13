@@ -234,6 +234,48 @@ TEST_F(Testutil, separate_ip_addresses)
     EXPECT_STREQ("", subnet);
 }
 
+TEST_F(Testutil, separate_space_delimited_addresses)
+{
+    char s[256] = {0};
+    char ip1[64] = {0};
+    char ip2[64] = {0};
+
+    strcpy(s, "1.2.3.4 2001:14BB:0 3.2.5.6 2002:1:AB17");
+    separate_space_delimited_addresses(true, s, ip1, sizeof(ip1), ip2, sizeof(ip2));
+    EXPECT_STREQ("2001:14BB:0", ip1);
+    EXPECT_STREQ("2002:1:AB17", ip2);
+    separate_space_delimited_addresses(false, s, ip1, sizeof(ip1), ip2, sizeof(ip2));
+    EXPECT_STREQ("1.2.3.4", ip1);
+    EXPECT_STREQ("3.2.5.6", ip2);
+
+    strcpy(s, "1.2.3.4 2001:14BB:0");
+    separate_space_delimited_addresses(true, s, ip1, sizeof(ip1), ip2, sizeof(ip2));
+    EXPECT_STREQ("2001:14BB:0", ip1);
+    EXPECT_STREQ("", ip2);
+    strcpy(s, "1.2.3.4 2001:14BB:0");
+    separate_space_delimited_addresses(false, s, ip1, sizeof(ip1), ip2, sizeof(ip2));
+    EXPECT_STREQ("1.2.3.4", ip1);
+    EXPECT_STREQ("", ip2);
+
+    strcpy(s, "FF01:7802:F40C:372D:C96E:B02:E99A:5560 1.2.3.4 2001:14BB:0 3.2.5.6 2002:1:AB17 11.22.33.44");
+    separate_space_delimited_addresses(true, s, ip1, sizeof(ip1), ip2, sizeof(ip2));
+    EXPECT_STREQ("FF01:7802:F40C:372D:C96E:B02:E99A:5560", ip1);
+    EXPECT_STREQ("2001:14BB:0", ip2);
+    separate_space_delimited_addresses(false, s, ip1, sizeof(ip1), ip2, sizeof(ip2));
+    EXPECT_STREQ("1.2.3.4", ip1);
+    EXPECT_STREQ("3.2.5.6", ip2);
+
+    strcpy(s, "211.246.100.49 168.126.63.1");
+    separate_space_delimited_addresses(true, s, ip1, sizeof(ip1), ip2, sizeof(ip2));
+    EXPECT_STREQ("", ip1);
+    EXPECT_STREQ("", ip2);
+
+    strcpy(s, "211.246.100.49 168.126.63.1");
+    separate_space_delimited_addresses(false, s, ip1, sizeof(ip1), ip2, sizeof(ip2));
+    EXPECT_STREQ("211.246.100.49", ip1);
+    EXPECT_STREQ("168.126.63.1", ip2);
+}
+
 TEST_F(Testutil, get_dynamic_ip_port)
 {
     uint16_t port = get_dynamic_ip_port();

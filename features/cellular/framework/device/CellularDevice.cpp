@@ -38,9 +38,8 @@ CellularDevice::CellularDevice(FileHandle *fh) : _network_ref_count(0),
     _sms_ref_count(0),
 #endif //MBED_CONF_CELLULAR_USE_SMS
     _info_ref_count(0), _fh(fh), _queue(10 * EVENTS_EVENT_SIZE), _state_machine(0),
-    _nw(0), _status_cb(0), _property_array(0)
+    _status_cb(0), _nw(0), _property_array(0)
 {
-    MBED_ASSERT(fh);
     set_sim_pin(NULL);
     set_plmn(NULL);
 }
@@ -72,6 +71,11 @@ CellularContext *CellularDevice::get_context_list() const
     return NULL;
 }
 
+nsapi_error_t CellularDevice::send_at_command(char *data, size_t data_len)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
 void CellularDevice::get_retry_timeout_array(uint16_t *timeout, int &array_len) const
 {
     if (_state_machine && timeout) {
@@ -86,6 +90,15 @@ void CellularDevice::set_sim_pin(const char *sim_pin)
         _sim_pin[sizeof(_sim_pin) - 1] = '\0';
     } else {
         memset(_sim_pin, 0, sizeof(_sim_pin));
+    }
+}
+
+const char *CellularDevice::get_plmn() const
+{
+    if (strlen(_plmn)) {
+        return _plmn;
+    } else {
+        return NULL;
     }
 }
 

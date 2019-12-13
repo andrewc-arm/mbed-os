@@ -398,14 +398,24 @@ public: //Common functions
      */
     void set_plmn(const char *plmn);
 
+    /** Get the plmn which is used is manual registering. If plmn is null then automatic registering is used.
+     *
+     *  @return plmn is it's set or null
+     */
+    const char *get_plmn() const;
+
     /** Start the interface
      *
      *  Initializes the modem for communication.
      *  API is asynchronous. Application can get results from CellularContext callback, which is set
      *  with attach(...), or callback, which is set by attach(...), in this class.
      *
-     *  @return         NSAPI_ERROR_OK on success
+     *  @return         NSAPI_ERROR_OK on success in blocking mode.
+     *                  NSAPI_ERROR_OK if asynchronous operation started.
+     *                  NSAPI_ERROR_ALREADY if device is already ready
+     *                  NSAPI_ERROR_IN_PROGRESS if device ready or other event which requires device ready is already in progress
      *                  NSAPI_ERROR_NO_MEMORY on case of memory failure
+     *
      */
     nsapi_error_t set_device_ready();
 
@@ -415,7 +425,10 @@ public: //Common functions
      *  API is asynchronous. Application can get results from CellularContext callback, which is set
      *  with attach(...), or callback, which is set by attach(...), in this class.
      *
-     *  @return         NSAPI_ERROR_OK on success
+     *  @return         NSAPI_ERROR_OK on success in blocking mode.
+     *                  NSAPI_ERROR_OK if asynchronous operation started.
+     *                  NSAPI_ERROR_ALREADY if sim is already ready
+     *                  NSAPI_ERROR_IN_PROGRESS if sim ready or other event which requires sim ready is already in progress
      *                  NSAPI_ERROR_NO_MEMORY on case of memory failure
      */
     nsapi_error_t set_sim_ready();
@@ -426,7 +439,12 @@ public: //Common functions
      *  API is asynchronous. Application can get results from CellularContext callback, which is set
      *  with attach(...), or callback, which is set by attach(...), in this class.
      *
-     *  @return         NSAPI_ERROR_OK on success
+     *  @remark     This does not work with RIL devices because APN is required. Use CellularContext class instead.
+     *
+     *  @return         NSAPI_ERROR_OK on success in blocking mode.
+     *                  NSAPI_ERROR_OK if asynchronous operation started.
+     *                  NSAPI_ERROR_ALREADY if device is already registered to a network
+     *                  NSAPI_ERROR_IN_PROGRESS if registering or other event which requires registering is already in progress
      *                  NSAPI_ERROR_NO_MEMORY on case of memory failure
      */
     nsapi_error_t register_to_network();
@@ -437,7 +455,12 @@ public: //Common functions
      *  API is asynchronous. Application can get results from CellularContext callback, which is set
      *  with attach(...), or callback, which is set by attach(...), in this class.
      *
-     *  @return         NSAPI_ERROR_OK on success
+     *  @remark     This does not work with RIL devices because APN is required. Use CellularContext class instead.
+     *
+     *  @return         NSAPI_ERROR_OK on success in blocking mode.
+     *                  NSAPI_ERROR_OK if asynchronous operation started.
+     *                  NSAPI_ERROR_ALREADY if device is already attached to a network
+     *                  NSAPI_ERROR_IN_PROGRESS if attach is already in progress
      *                  NSAPI_ERROR_NO_MEMORY on case of memory failure
      */
     nsapi_error_t attach_to_network();
@@ -469,9 +492,26 @@ public: //Common functions
      */
     void set_retry_timeout_array(const uint16_t timeout[], int array_len);
 
+    /** Forward AT command string to RIL.
+     *  Method is asynchronous and response comes in pieces to callback which is with attach(...) with
+     *  event CellularRILATResponse. See more from ../common/CellularCommon.h
+     *
+     * @param data      AT command. Maximum length of AT command string is 1000
+     *                  data string ends with carriage return characters (0x0D, 0x0A)
+     *                  NULL character is not attached at the end.
+     * @param data_len  length of the data
+     *
+     * @return  NSAPI_ERROR_OK on success
+     *          NSAPI_ERROR_PARAMETER on if invalid parameter
+     *          NSAPI_ERROR_DEVICE_ERROR on failure
+     *          NSAPI_ERROR_UNSUPPORTED if not RIL layer in use
+     */
+    virtual nsapi_error_t send_at_command(char *data, size_t data_len);
+
 protected: //Common functions
     friend class AT_CellularNetwork;
     friend class AT_CellularContext;
+    friend class RIL_CellularContext;
     friend class CellularContext;
 
     /** Get the retry array from the CellularStateMachine. Array is used in retry logic.
@@ -499,13 +539,13 @@ protected: //Member variables
     FileHandle *_fh;
     events::EventQueue _queue;
     CellularStateMachine *_state_machine;
+    Callback<void(nsapi_event_t, intptr_t)> _status_cb;
 
 private: //Member variables
     CellularNetwork *_nw;
     char _sim_pin[MAX_PIN_SIZE + 1];
     char _plmn[MAX_PLMN_SIZE + 1];
     PlatformMutex _mutex;
-    Callback<void(nsapi_event_t, intptr_t)> _status_cb;
 
     const intptr_t *_property_array;
 };

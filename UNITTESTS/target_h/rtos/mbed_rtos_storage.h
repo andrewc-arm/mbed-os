@@ -31,6 +31,10 @@ typedef os_semaphore_t mbed_rtos_storage_semaphore_t;
 typedef os_thread_t mbed_rtos_storage_thread_t;
 typedef osRtxEventFlags_t mbed_rtos_storage_event_flags_t;
 
+typedef osRtxMutex_t mbed_rtos_storage_mutex_t;
+typedef osRtxSemaphore_t mbed_rtos_storage_semaphore_t;
+typedef osRtxThread_t mbed_rtos_storage_thread_t;
+
 #ifdef __cplusplus
 }
 #endif

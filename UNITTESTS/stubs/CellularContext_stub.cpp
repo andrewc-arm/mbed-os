@@ -68,4 +68,9 @@ void CellularContext::call_network_cb(nsapi_connection_status_t status)
     }
 }
 
+char *CellularContext::get_interface_name(char *interface_name)
+{
+    return 0;
+}
+
 }
