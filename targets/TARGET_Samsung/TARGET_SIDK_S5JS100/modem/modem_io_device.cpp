@@ -66,7 +66,7 @@ ModemIoDevice *modem_io_deivce_list[] = {
 
 ModemIoDevice *getModemIoDeviceByName(char *name)
 {
-    int i;
+    unsigned int i;
 
     for (i = 0; i < MODEM_IO_DEVICE_MAX; i++) {
         if (modem_io_deivce_list[i] && !strncmp(modem_io_deivce_list[i]->name, name, 31)) {
@@ -78,7 +78,7 @@ ModemIoDevice *getModemIoDeviceByName(char *name)
 
 ModemIoDevice *getModemIoDeviceById(int ch)
 {
-    int i;
+    unsigned int i;
 
     for (i = 0; i < MODEM_IO_DEVICE_MAX; i++) {
         if (modem_io_deivce_list[i] != NULL) {

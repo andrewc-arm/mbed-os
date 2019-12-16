@@ -88,7 +88,7 @@ void ShmemIpcDevice::write_ipc_to_txq(mio_buf *mio)
     unsigned int len = mio->len;
     unsigned int pad = mio->pad;
     unsigned int i, j;
-    unsigned short *frame_seq = (unsigned short *)((void *)header + EXYNOS_FRAME_SEQ_OFFSET);
+    unsigned short *frame_seq = (unsigned short *)((char *)header + EXYNOS_FRAME_SEQ_OFFSET);
 
     *frame_seq = ++header_cnt;
 
@@ -516,7 +516,6 @@ int ShmemIpcDevice::rx_ipc_frames(void)
     /**
      * variables for RX processing
      */
-    int qsize;	/* size of the queue			*/
     int rcvd;	/* size of data in the RXQ or error	*/
     int rest;	/* size of the rest data		*/
     unsigned int out;	/* index to the start of current frame	*/

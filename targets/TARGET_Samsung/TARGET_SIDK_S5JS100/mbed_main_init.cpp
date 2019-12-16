@@ -27,10 +27,6 @@ extern "C" {
 
     void s5js100_modem_start(void)
     {
-        unsigned int i;
-        char *name;
-        int id;
-
         pShmemLinkDevice = new ShmemLinkDevice();
 	pShmemLinkDevice->ShmemLinkDevice_start();
     }

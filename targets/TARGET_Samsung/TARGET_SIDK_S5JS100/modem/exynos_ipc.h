@@ -82,11 +82,6 @@ struct  __attribute__((packed)) exynos_link_header {
     unsigned short reserved_2;
 };
 
-struct __attribute__((packed)) exynos_seq_num {
-    unsigned short frame_cnt;
-    unsigned char ch_cnt[255];
-};
-
 struct exynos_frame_data {
     /* Frame length calculated from the length fields */
     unsigned int len;
