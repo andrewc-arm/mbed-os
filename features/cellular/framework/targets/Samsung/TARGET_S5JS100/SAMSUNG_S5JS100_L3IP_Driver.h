@@ -21,8 +21,7 @@
 #include "L3IP.h"
 #include "modem_io_device.h"
 
-class SAMSUNG_S5JS100_L3IP_Driver : public L3IP
-{
+class SAMSUNG_S5JS100_L3IP_Driver : public L3IP {
 
 public:
 
@@ -151,7 +150,7 @@ private:
     l3ip_link_state_change_cb_t _l3ip_link_state_cb;    /**< Link state change callback */
     NetStackMemoryManager       *_memory_manager;       /**< Memory manager */
 
-    ModemIoDevice*              _io_device;             /**< Handle to modem */
+    ModemIoDevice              *_io_device;             /**< Handle to modem */
     char                        _ifname[32];            /**< Interface name */
     int                         _mtu;                   /**< MTU */
 };
