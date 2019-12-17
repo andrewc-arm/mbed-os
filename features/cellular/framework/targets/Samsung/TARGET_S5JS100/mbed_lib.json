@@ -1,0 +1,4 @@
+{
+    "name": "S5JS100_RIL",
+    "macros": ["CELLULAR_RIL_HEADER=\"SAMSUNG_S5JS100_RIL_HEADER.h\""]
+}
