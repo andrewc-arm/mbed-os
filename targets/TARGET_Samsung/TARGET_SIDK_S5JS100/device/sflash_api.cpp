@@ -101,7 +101,7 @@ uint32_t s5js100_sflash_read_capacity(void)
 {
     uint32_t capacity_type;
     capacity_type = (getreg32(S5JS100_SFLASH_RDID) & (0xFF << 16)) >> 16;
-    capacity_type = ((0x1 << (capacity_type & 0xF)) - 1) * 1024 * 1024;
+	capacity_type = (0x1 << ((capacity_type & 0xF) - 1)) * 1024 * 1024;
     return capacity_type / 8;
 }
 
