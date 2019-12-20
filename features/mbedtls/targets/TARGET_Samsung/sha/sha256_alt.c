@@ -19,6 +19,7 @@
 
 #if defined(MBEDTLS_SHA256_C)
 #if defined(MBEDTLS_SHA256_ALT)
+
 #include "mb_cmd_hash.h"
 #define SHA256_VALIDATE_RET(cond)                           \
     MBEDTLS_INTERNAL_VALIDATE_RET( cond, MBEDTLS_ERR_SHA256_BAD_INPUT_DATA )
@@ -94,10 +95,19 @@ int mbedtls_sha256_starts_ret(mbedtls_sha256_context *ctx, int is224)
     ctx->total[1] = 0;
 
     if( is224 == 0 )
-    {  //SHA-256 by SSS H/W
+    {  
+		int ret = FAIL;
+		//SHA-256 by SSS H/W
 		ctx->is224 = 0;
 	///	memset( ctx->sbuf, 0, sizeof( ctx->sbuf ) );
 		memset( ctx, 0, sizeof( mbedtls_sha256_context ) );
+		//! step 0 : clear Mailbox
+		ret = mb_system_clear(CLEAR_TYPE_MAILBOX);
+
+		if (ret != SSSR_SUCCESS) {
+			return ret;
+		}
+
 	}
     else
     {
@@ -125,29 +135,66 @@ int mbedtls_sha256_update_ret(mbedtls_sha256_context *ctx, const unsigned char *
 		mbedtls_sha256_sw_update_ret(ctx, input, ilen);
 	}
 	else {
-		if(ilen > MAX_MB_HASH_BLOCK_BLEN || ctx->totals > MAX_MB_HASH_BLOCK_BLEN) {
-			// H/W SHA has limitation to seperated API with oversized message.
-			// fall back to S/W SHA-256
-			//memset( ctx, 0, sizeof( mbedtls_sha256_context ) );
-			if(ctx->totals == 0) {
-				ctx->total[0] = 0;
-				ctx->total[1] = 0;
-				/* SHA-256 */
-				ctx->state[0] = 0x6A09E667;
-				ctx->state[1] = 0xBB67AE85;
-				ctx->state[2] = 0x3C6EF372;
-				ctx->state[3] = 0xA54FF53A;
-				ctx->state[4] = 0x510E527F;
-				ctx->state[5] = 0x9B05688C;
-				ctx->state[6] = 0x1F83D9AB;
-				ctx->state[7] = 0x5BE0CD19;
-			} 
-			ctx->totals += ilen;
-			mbedtls_sha256_sw_update_ret(ctx, input, ilen);
-		} else {
-			// SHA-256 handle by SSS H/W
+		int ret = FAIL;
+		unsigned int block_byte_len;
+		unsigned int object_id;
+		stOCTET_STRING stHASH_Input;
+        // SHA-256 handle by SSS H/W
+
+		if(  ilen <= MAX_MB_HASH_BLOCK_BLEN) {
+			// maximum to 256bytes, skip to update
 			memcpy(ctx->sbuf + ctx->pstMessage.u32DataByteLen, input, ilen);
+			ctx->pstMessage.pu08Data = ctx->sbuf;
 			ctx->pstMessage.u32DataByteLen += ilen;
+
+			object_id = OID_SHA2_256;
+			block_byte_len = 64; /* meaningless ?*/
+
+			//! step 1 : set message length parameter to SSS
+			ret = mb_hash_init(&ctx->pstMessage, object_id);
+			if (ret != SSSR_SUCCESS) {
+				return ret;
+			}
+		}
+		else { //over then 256, e.g., 1000
+			//! step 2 : set message block to SSS
+			//ctx->pstMessage.pu08Data = ctx->sbuf;
+			unsigned int offset=0;
+			block_byte_len = 64; /* meaningless ?*/
+			if(ctx->left == 0) {
+				stHASH_Input.u32DataByteLen = ilen;
+				stHASH_Input.pu08Data = input;
+			} else if(ctx->left != 0 && ilen > MAX_MB_HASH_BLOCK_BLEN) { 
+				//next turn , ctx->left 232, offset 24.
+				offset = MAX_MB_HASH_BLOCK_BLEN - ctx->left;
+
+				memcpy(ctx->sbuf + ctx->left, input , offset);
+				/* handle sbuf first */
+				stHASH_Input.pu08Data = ctx->sbuf;
+				stHASH_Input.u32DataByteLen = MAX_MB_HASH_BLOCK_BLEN;
+				ret = mb_hash_update(&stHASH_Input, block_byte_len);
+				if (ret != SSSR_SUCCESS) {
+					return ret;
+				}
+				stHASH_Input.pu08Data = input + offset;
+				stHASH_Input.u32DataByteLen = ilen - offset; 
+			} else {
+				asm("b .");
+				//none of case
+			}
+	
+			while (ctx->pstMessage.u32DataByteLen > MAX_MB_HASH_BLOCK_BLEN) {
+				ret = mb_hash_update(&stHASH_Input, block_byte_len);
+				if (ret != SSSR_SUCCESS) {
+					return ret;
+				}
+				ctx->pstMessage.pu08Data += MAX_MB_HASH_BLOCK_BLEN;
+				ctx->pstMessage.u32DataByteLen -= MAX_MB_HASH_BLOCK_BLEN;
+			}
+
+			// [0] ---rest of msg----- [232] ---- [256]
+			memcpy(ctx->sbuf + ctx->left, ctx->pstMessage.pu08Data , ctx->pstMessage.u32DataByteLen);
+			ctx->left = ctx->pstMessage.u32DataByteLen; //232
 		}
 	}
     return 0;
@@ -158,45 +205,39 @@ int mbedtls_sha256_update_ret(mbedtls_sha256_context *ctx, const unsigned char *
  */
 int mbedtls_sha256_finish_ret(mbedtls_sha256_context *ctx, unsigned char output[32])
 {
-	if(ctx->is224 || ctx->totals > MAX_MB_HASH_BLOCK_BLEN) 
+	if(ctx->is224) 
 		mbedtls_sha256_sw_finish_ret(ctx, output);
 	else {
 		int ret = FAIL;
-		unsigned int object_id;
+		stOCTET_STRING stHASH_Input;
 		unsigned int block_byte_len;
 
 		ctx->pstDigest.pu08Data = output; /* assign output buffer */
 
-		stOCTET_STRING stHASH_Input;
-		//! step 0 : clear Mailbox
-		ret = mb_system_clear(CLEAR_TYPE_MAILBOX);
+		if(ctx->left == 0) {
+		//	stHASH_Input.u32DataByteLen = ilen;
+		//	stHASH_Input.pu08Data = input;
+		} else { //next turn , left 232, offset 24.
+			block_byte_len = 64; /* meaningless ?*/
 
-		if (ret != SSSR_SUCCESS) {
-			return ret;
+			ctx->offset = MAX_MB_HASH_BLOCK_BLEN - ctx->left;
+
+			memcpy(ctx->sbuf + ctx->left, ctx->restbuf , ctx->offset);
+			/* handle sbuf first */
+			stHASH_Input.pu08Data = ctx->sbuf;
+			stHASH_Input.u32DataByteLen = MAX_MB_HASH_BLOCK_BLEN;
+			ret = mb_hash_update(&stHASH_Input, block_byte_len);
+			if (ret != SSSR_SUCCESS) {
+				return ret;
+			}
+			stHASH_Input.pu08Data = ctx->restbuf + ctx->offset;
+			stHASH_Input.u32DataByteLen = 0;//ilen - offset; 
 		}
+
 
 		//! assign hash_byte_len to compare returned result from sss_fw after hash operation
-		object_id = OID_SHA2_256;
-		block_byte_len = 64; /* meaningless*/
-
-		//! step 1 : set message length parameter to SSS
-		ret = mb_hash_init(&ctx->pstMessage, object_id);
-
-		if (ret != SSSR_SUCCESS) {
-			return ret;
-		}
-
-		//! step 2 : set message block to SSS
-		ctx->pstMessage.pu08Data = ctx->sbuf;
 		stHASH_Input.pu08Data = ctx->pstMessage.pu08Data;
 		stHASH_Input.u32DataByteLen = ctx->pstMessage.u32DataByteLen;
-
-		ret = mb_hash_update(&stHASH_Input, block_byte_len);
-
-		if (ret != SSSR_SUCCESS) {
-			return ret;
-		}
-		
 
 		//! step 3 : get hash result from SSS
 		ret = mb_hash_final(&stHASH_Input, &ctx->pstDigest);
@@ -368,8 +409,8 @@ int mbedtls_sha256_sw_finish_ret(mbedtls_sha256_context *ctx, unsigned char outp
 	PUT_UINT32_BE( ctx->state[5], output, 20 );
 	PUT_UINT32_BE( ctx->state[6], output, 24 );
 
-	if( ctx->is224 == 0 )
-		PUT_UINT32_BE( ctx->state[7], output, 28 );
+	//		if( ctx->is224 == 0 )
+	//			PUT_UINT32_BE( ctx->state[7], output, 28 );
 	return 0;
 }
 
@@ -418,8 +459,6 @@ int mbedtls_sha256_sw_update_ret(mbedtls_sha256_context *ctx, const unsigned cha
 
 	if( ilen > 0 )
 		memcpy( (void *) (ctx->buffer + left), input, ilen );
-
-	return( 0 );
 }
 	
 
