@@ -163,15 +163,15 @@ nsapi_error_t RIL_CellularContext::connect()
                 _is_running = false;
                 _final_op = OP_INVALID;
                 _current_op = OP_INVALID;
-                _api_mutex. unlock();
+                _api_mutex.unlock();
                 return NSAPI_ERROR_NO_MEMORY;
             }
-            _api_mutex. unlock();
+            _api_mutex.unlock();
             return NSAPI_ERROR_OK;
         }
     }
 
-    _api_mutex. unlock();
+    _api_mutex.unlock();
     return _cb_data.error;
 }
 
@@ -454,7 +454,6 @@ void RIL_CellularContext::create_interface_and_connect()
             bringup_gw = _data_call_addresses->_gateway_addr_ipv6;
         }
 
-        // _local_addr_ipv6 is actually a link-local address from RIL
         _cb_data.error = _stack_interface->bringup(false,
                                                    bringup_ip,
                                                    local_subnet_mask,
@@ -756,10 +755,10 @@ nsapi_error_t RIL_CellularContext::register_to_network()
             _is_running = false;
             _final_op = OP_INVALID;
             _current_op = OP_INVALID;
-            _api_mutex. unlock();
+            _api_mutex.unlock();
             return NSAPI_ERROR_NO_MEMORY;
         }
-        _api_mutex. unlock();
+        _api_mutex.unlock();
         return NSAPI_ERROR_OK;
     }
     _api_mutex.unlock();
@@ -795,10 +794,10 @@ nsapi_error_t RIL_CellularContext::attach_to_network()
             _is_running = false;
             _final_op = OP_INVALID;
             _current_op = OP_INVALID;
-            _api_mutex. unlock();
+            _api_mutex.unlock();
             return NSAPI_ERROR_NO_MEMORY;
         }
-        _api_mutex. unlock();
+        _api_mutex.unlock();
         return NSAPI_ERROR_OK;
     }
 
