@@ -91,6 +91,11 @@ const char *LWIP::get_ip_address()
     return NULL;
 }
 
+nsapi_error_t LWIP::get_ip_address_if(SocketAddress *address, const char *interface_name)
+{
+    return NSAPI_ERROR_OK;
+}
+
 nsapi_error_t LWIP::socket_open(nsapi_socket_t *handle, nsapi_protocol_t proto)
 {
     return NSAPI_ERROR_OK;

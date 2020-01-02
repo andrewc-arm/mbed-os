@@ -105,16 +105,6 @@ nsapi_error_t LWIP::Interface::get_ipv6_link_local_address(SocketAddress *addres
     return NSAPI_ERROR_OK;
 }
 
-nsapi_error_t LWIP::Interface::get_ip_address_if(const char *interface_name, SocketAddress *address)
-{
-    return NSAPI_ERROR_OK;
-}
-
-char *LWIP::Interface::get_ip_address_if(char *buf, nsapi_size_t buflen, const char *interface_name)
-{
-    return NULL;
-}
-
 nsapi_error_t LWIP::Interface::get_netmask(SocketAddress *address)
 {
     return NSAPI_ERROR_OK;
