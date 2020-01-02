@@ -76,8 +76,8 @@ void mbedtls_sha256_clone(mbedtls_sha256_context *dst,
         return;
     }
 
-	//SHA256_VALIDATE( dst != NULL );
-	//SHA256_VALIDATE( src != NULL );
+	SHA256_VALIDATE( dst != NULL );
+	SHA256_VALIDATE( src != NULL );
 
 	memcpy(dst, src, sizeof(mbedtls_sha256_context));
 }
@@ -96,7 +96,6 @@ int mbedtls_sha256_starts_ret(mbedtls_sha256_context *ctx, int is224)
     if( is224 == 0 )
     {  //SHA-256 by SSS H/W
 		ctx->is224 = 0;
-	///	memset( ctx->sbuf, 0, sizeof( ctx->sbuf ) );
 		memset( ctx, 0, sizeof( mbedtls_sha256_context ) );
 	}
     else
@@ -121,15 +120,15 @@ int mbedtls_sha256_starts_ret(mbedtls_sha256_context *ctx, int is224)
  */
 int mbedtls_sha256_update_ret(mbedtls_sha256_context *ctx, const unsigned char *input, size_t ilen)
 {
+	printf("%s, ilen %d \r\n", __func__, ilen);
 	if(ctx->is224){
 		mbedtls_sha256_sw_update_ret(ctx, input, ilen);
 	}
 	else {
-		if(ilen > MAX_MB_HASH_BLOCK_BLEN || ctx->totals > MAX_MB_HASH_BLOCK_BLEN) {
+		if(ilen > MAX_MB_HASH_BLOCK_BLEN || (ctx->totals + ilen) > MAX_MB_HASH_BLOCK_BLEN || ctx->totals > MAX_MB_HASH_BLOCK_BLEN) {
 			// H/W SHA has limitation to seperated API with oversized message.
 			// fall back to S/W SHA-256
-			//memset( ctx, 0, sizeof( mbedtls_sha256_context ) );
-			if(ctx->totals == 0) {
+			if(ctx->totals == 0 || ctx->hw == 1) {
 				ctx->total[0] = 0;
 				ctx->total[1] = 0;
 				/* SHA-256 */
@@ -143,11 +142,17 @@ int mbedtls_sha256_update_ret(mbedtls_sha256_context *ctx, const unsigned char *
 				ctx->state[7] = 0x5BE0CD19;
 			} 
 			ctx->totals += ilen;
+			//in case, H/W -> S/W fallback case
+			if( (ctx->totals + ilen) > MAX_MB_HASH_BLOCK_BLEN && ctx->hw == 1) {
+				mbedtls_sha512_sw_update_ret(ctx, ctx->sbuf, ctx->pstMessage.u32DataByteLen);
+			} 
+			ctx->hw = 0;
 			mbedtls_sha256_sw_update_ret(ctx, input, ilen);
-		} else {
+		} else { //less than MAX_MB_HASH_BLOCK_BLEN size will handle with H/W
 			// SHA-256 handle by SSS H/W
 			memcpy(ctx->sbuf + ctx->pstMessage.u32DataByteLen, input, ilen);
 			ctx->pstMessage.u32DataByteLen += ilen;
+			ctx->totals += ilen; //in case the block size increased incrementally. (3, 20, 256..)
 		}
 	}
     return 0;
@@ -158,6 +163,7 @@ int mbedtls_sha256_update_ret(mbedtls_sha256_context *ctx, const unsigned char *
  */
 int mbedtls_sha256_finish_ret(mbedtls_sha256_context *ctx, unsigned char output[32])
 {
+	printf("%s \r\n", __func__);
 	if(ctx->is224 || ctx->totals > MAX_MB_HASH_BLOCK_BLEN) 
 		mbedtls_sha256_sw_finish_ret(ctx, output);
 	else {
@@ -165,6 +171,7 @@ int mbedtls_sha256_finish_ret(mbedtls_sha256_context *ctx, unsigned char output[
 		unsigned int object_id;
 		unsigned int block_byte_len;
 
+		printf("%s ctx->pstMessage 0x%x ByteLen %d totlas %d\r\n", __func__, &ctx->pstMessage, ctx->pstMessage.u32DataByteLen, ctx->totals);
 		ctx->pstDigest.pu08Data = output; /* assign output buffer */
 
 		stOCTET_STRING stHASH_Input;

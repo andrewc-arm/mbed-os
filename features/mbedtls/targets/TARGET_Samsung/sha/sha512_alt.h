@@ -41,6 +41,7 @@ typedef struct mbedtls_sha512_context_s {
                                      0: Use SHA-512, or 1: Use SHA-384. */
 	/* for H/W SHA-512 */
 	uint32_t totals;
+	uint32_t hw;
     unsigned char sbuf[ST_SHA512_BUF_SIZE]; /*!< ST_SHA512_BLOCK_SIZE buffer to store values so that algorithm is called once the buffer is filled */
 	stOCTET_STRING pstMessage;
 	stOCTET_STRING pstDigest;

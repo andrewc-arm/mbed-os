@@ -42,6 +42,7 @@ typedef struct mbedtls_sha256_context_s {
 
 	/* for H/W SHA-256 */
 	uint32_t totals;
+	uint32_t hw;
     unsigned char sbuf[ST_SHA256_BUF_SIZE]; /*!< ST_SHA256_BLOCK_SIZE buffer to store values so that algorithm is called once the buffer is filled */
 	stOCTET_STRING pstMessage;
 	stOCTET_STRING pstDigest;
