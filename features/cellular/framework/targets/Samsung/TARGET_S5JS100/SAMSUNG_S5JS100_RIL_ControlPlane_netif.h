@@ -42,7 +42,7 @@ private:
 private:
     void (*_cb)(void *);
     void *_data;
-    char _recv_buffer[MAX_CP_DATA_RECV_LEN];
+    char _recv_buffer[MBED_CONF_CELLULAR_MAX_CP_DATA_RECV_LEN];
     uint32_t _recv_len;
 
     ModemIoDevice *_io_device;
