@@ -104,12 +104,7 @@ void mbedtls_sha512_clone(mbedtls_sha512_context *dst,
 	SHA512_VALIDATE( dst != NULL );
 	SHA512_VALIDATE( src != NULL );
 
-	printf("%s %s, src 0x%x, hw%d, ByteLen %d totlas %d\r\n", __func__, src->is384?"384":"512", \
-	src, src->hw, src->pstMessage.u32DataByteLen, src->totals);
 	memcpy(dst, src, sizeof(mbedtls_sha512_context));
-
-	printf("%s %s, dst 0x%x, hw%d, ByteLen %d totlas %d\r\n", __func__, dst->is384?"384":"512", \
-	dst, dst->hw, dst->pstMessage.u32DataByteLen, dst->totals);
 }
 
 /*
@@ -162,10 +157,6 @@ int mbedtls_sha512_update_ret(mbedtls_sha512_context *ctx, const unsigned char *
 		//in case, H/W -> S/W fallback case
 		if( (ctx->totals + ilen) > MAX_MB_HASH_BLOCK_BLEN && ctx->hw == 1) {
 			//214 + 2577
-			printf("H/W => S/W fallback\r\n");
-			printf("%s %s, ctx 0x%x, hw%d, ByteLen %d totlas %d\r\n",  \
-	        __func__, ctx->is384?"384":"512", ctx, ctx->hw, ctx->pstMessage.u32DataByteLen, ctx->totals);
-			printf("input 0x%x, ilen %d\r\n", input, ilen);
 			mbedtls_sha512_sw_update_ret(ctx, ctx->sbuf, ctx->pstMessage.u32DataByteLen);
 		} 
 		ctx->hw = 0;
@@ -187,14 +178,10 @@ int mbedtls_sha512_finish_ret(mbedtls_sha512_context *ctx, unsigned char output[
 {
 	if(ctx->totals > MAX_MB_HASH_BLOCK_BLEN)  {
 		mbedtls_sha512_sw_finish_ret(ctx, output);
-		printf("%s %s, ctx 0x%x, hw%d, ByteLen %d totlas %d\r\n",  \
-        __func__, ctx->is384?"384":"512", ctx, ctx->hw, ctx->pstMessage.u32DataByteLen, ctx->totals);
 	} else {
 		int ret = FAIL;
 		unsigned int object_id;
 		unsigned int block_byte_len;
-		printf("%s %s, ctx 0x%x, hw%d, ByteLen %d totlas %d\r\n",  \
-        __func__, ctx->is384?"384":"512", ctx, ctx->hw, ctx->pstMessage.u32DataByteLen, ctx->totals);
 
 		ctx->pstDigest.pu08Data = output; /* assign output buffer */
 

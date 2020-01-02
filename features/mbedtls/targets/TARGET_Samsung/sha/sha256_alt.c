@@ -120,7 +120,6 @@ int mbedtls_sha256_starts_ret(mbedtls_sha256_context *ctx, int is224)
  */
 int mbedtls_sha256_update_ret(mbedtls_sha256_context *ctx, const unsigned char *input, size_t ilen)
 {
-	printf("%s, ilen %d \r\n", __func__, ilen);
 	if(ctx->is224){
 		mbedtls_sha256_sw_update_ret(ctx, input, ilen);
 	}
@@ -163,7 +162,6 @@ int mbedtls_sha256_update_ret(mbedtls_sha256_context *ctx, const unsigned char *
  */
 int mbedtls_sha256_finish_ret(mbedtls_sha256_context *ctx, unsigned char output[32])
 {
-	printf("%s \r\n", __func__);
 	if(ctx->is224 || ctx->totals > MAX_MB_HASH_BLOCK_BLEN) 
 		mbedtls_sha256_sw_finish_ret(ctx, output);
 	else {
@@ -171,7 +169,6 @@ int mbedtls_sha256_finish_ret(mbedtls_sha256_context *ctx, unsigned char output[
 		unsigned int object_id;
 		unsigned int block_byte_len;
 
-		printf("%s ctx->pstMessage 0x%x ByteLen %d totlas %d\r\n", __func__, &ctx->pstMessage, ctx->pstMessage.u32DataByteLen, ctx->totals);
 		ctx->pstDigest.pu08Data = output; /* assign output buffer */
 
 		stOCTET_STRING stHASH_Input;
