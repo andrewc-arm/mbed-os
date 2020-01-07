@@ -153,6 +153,9 @@
         }
     },
     "target_overrides": {
+        "S5JS100": {
+            "stdio-baud-rate": 115200
+        },
         "ARM_MUSCA_A1_NS": {
             "stdio-baud-rate": 115200
         },
